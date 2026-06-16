@@ -58,28 +58,30 @@ changes (with reasons /forced/ where they matter), and manually via
 =M-m M-z= for content edits. Delegation, supersession, document
 revisions, and archiving are this primitive at different granularities.
 
-** Folders encode behavior, tags encode type
+** Folders are organizational defaults, not behavior
 
-A folder exists only where files /behave/ differently — agenda
-membership, archiving ritual, mutability. Where only the /kind/ of
-content differs, a =#+filetags= entry distinguishes it. That is why
-there is no =labor/= folder (a protocol and a field report behave
-identically → both are =records/= with different tags), and why
-concept Zettel and collection items share =notes/=.
+Every folder under =org/= is just a folder: it lives in the agenda, and
+capture asks you which one to file into. The folders below exist only as
+handy default targets and as archive homes — they no longer encode
+behavior (agenda membership, mutability). A =#+filetags= entry marks the
+/kind/ of content (=:labor:=, =:meeting:=, =:concept:=, …); one record
+type or note type is one new template with its own filetag, never a new
+folder.
 
-| Folder     | Shape          | Behavior                                                                                                            |
-|------------+----------------+---------------------------------------------------------------------------------------------------------------------|
-| =inbox.org=  | not yet sorted | single front door; emptied at the daily review by refiling                                                          |
-| =dailies/=   | moment-record  | journal, one file per day; optional; never edited after its day                                                     |
-| =records/=   | moment-record  | ALL typed records (=:labor:=, =:meeting:=, …); immutable; link projects by ID                                           |
-| =projects/=  | entity         | one file per project; IN the agenda; project ends → whole file to =projects/archive/=                                 |
-| =areas/=     | entity         | machines, process domains, teams; IN the agenda; never end; superseded subtrees → =areas/archive/=                    |
-| =notes/=     | understanding  | =:concept:= Zettel (rewrite freely) and =:collection:= items (movies, places — with TODO lifecycles); in the agenda |
-| =*/archive/= | memory         | out of the agenda, fully inside search and the org-roam graph                                                       |
+| Folder     | Default use                                                                      |
+|------------+----------------------------------------------------------------------------------|
+| =inbox.org=  | unsorted front door (just one file you can pick during capture)                   |
+| =dailies/=   | journal, one file per day; optional; never edited after its day                    |
+| =records/=   | typed records (=:labor:=, =:meeting:=, …); immutable; link projects by ID          |
+| =projects/=  | one file per project (the default for the =p= capture)                            |
+| =areas/=     | machines, process domains, teams                                                  |
+| =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places — with TODO lifecycles) |
+| =*/archive/= | every folder gets one; archive/ folders are the only ones NOT in the agenda       |
 
-A new record type (Feldbericht, Audit, …) is one new capture template
-with its own filetag. A new note type is one new roam template. The
-folder set above is final.
+The agenda is =directory-files-recursively= over =org/= minus any
+=archive/= folder, rebuilt before each =M-m a=. Add a folder and it shows
+up; archive one (a subtree via =M-m x a=, or a whole file via =git mv=
+into an =archive/=) and it drops out.
 
 When a project changes something that belongs to an area (a machine
 parameter, a standard process), the change happens *at the area* —
@@ -107,11 +109,12 @@ obligation.
 Everything you will ever do in this system is one of five moves:
 
 1. *Capture* — =M-m c= (=t= todo, =n= note, =d= decision, =m= meeting,
-   =l= Laborprotokoll, =p= project). Everything enters through the
-   inbox or a template; ID and =CREATED= stamp are automatic, and
-   file captures (Projekt, Laborprotokoll) get a file-level ID, so
-   every captured thing is a linkable roam node from birth. You never
-   create entities by typing raw headings mid-thought — and that is
+   =l= Laborprotokoll, =p= project). Every template prompts for the
+   folder (and file) under =org/= to file into; the typed name becomes
+   the =#+title=. ID and =CREATED= stamp are automatic — every captured
+   file gets a file-level ID, every captured/todo heading gets a heading
+   ID, so every captured thing is a linkable roam node from birth. You
+   never create entities by typing raw headings mid-thought — and that is
    what keeps moment-records safe: they only ever contain /links/ to
    entities, never the entities themselves.
 2. *State change* — =M-m M-t=. Where a reason matters (WAIT, DLGT,
@@ -264,7 +267,7 @@ of it.
 
 | Situation                                        | Do this                                                                      |
 |--------------------------------------------------+------------------------------------------------------------------------------|
-| Anything incoming — idea, request, action needed | =M-m c t= → inbox; shape it at the daily review                              |
+| Anything incoming — idea, request, action needed | =M-m c t=; pick the folder/file; shape it at the daily review                  |
 | What happened today, context, half-thoughts      | =M-m n j= daily note; link entities; never edit after today                  |
 | Experiment                                       | =M-m c l= → typed record in =records/=, project linked by ID                 |
 | Meeting                                          | =M-m c m=; decisions made there get =M-m c d= and are linked from the minutes |
@@ -830,8 +833,26 @@ Intermediate directories are created as needed."
                    (expand-file-name "archive/" my/org-dir)
                    (expand-file-name "archive/" my/org-projects-dir)
                    (expand-file-name "archive/" my/org-areas-dir)
-                   (expand-file-name "archive/" my/org-records-dir)))
+                    (expand-file-name "archive/" my/org-records-dir)))
     (make-directory d t))
+
+  ;; --- Agenda = every .org under org/, except any archive/ folder ----
+  ;; Folders are organizational defaults only; the agenda sees ALL of them
+  ;; (records/, dailies/, notes/, projects/, areas/, …). archive/ folders
+  ;; stay out so finished/cancelled/superseded items don't clutter the
+  ;; todo views. The list is rebuilt before each `org-agenda' call (advice
+  ;; in :config below) so a folder you just created shows up immediately.
+  (defun my/org-agenda-files ()
+    "Return every .org under `org-directory' except files inside an archive/."
+    (directory-files-recursively
+     org-directory "\\.org\\'" nil
+     (lambda (d) (not (equal (file-name-nondirectory
+                              (directory-file-name d)) "archive")))))
+
+  (defvar my/org-agenda-auto-refresh t
+    "If non-nil, `org-agenda' rebuilds `org-agenda-files' before running.
+The per-folder/per-file agenda helpers bind this to nil to keep their
+restriction intact.")
 
   (use-package org
     :ensure nil
@@ -902,22 +923,28 @@ Intermediate directories are created as needed."
     (org-refile-targets '((org-agenda-files :maxlevel . 3)))
     (org-refile-use-outline-path 'file)
     (org-outline-path-complete-in-steps nil)
-    ;; Agenda = the WORKSPACE. dailies/, records/ and every archive/
-    ;; stay out on purpose — pure moment-records and memory don't belong
-    ;; in a todo view. notes/ IS included, so :collection: items with
-    ;; TODO states (films to watch, places to visit) surface here.
-    ;; Follow-ups noticed while writing a protocol are captured as tasks
-    ;; (M-m c t), not typed into the record.
-    ;; (If you DON'T want collection TODOs in the agenda, drop
-    ;; my/org-notes-dir from this list.) `my/org-agenda-subdir' peeks anywhere.
-    (org-agenda-files (list my/org-dir my/org-projects-dir
-                            my/org-areas-dir my/org-notes-dir))
+     ;; Agenda = the WHOLE workspace. Every folder under org/ is in the
+     ;; agenda (records/, dailies/, notes/, projects/, areas/, …) — only
+     ;; archive/ folders are skipped (finished/cancelled/superseded items
+     ;; don't belong in a todo view). `my/org-agenda-files' (above) builds
+     ;; the list; the :config advice rebuilds it before each `org-agenda'
+     ;; so newly added folders appear without restarting.
+     (org-agenda-files (my/org-agenda-files))
     :config
     ;; Stable IDs: inserting a link interactively creates an ID at the
     ;; target, so links survive refiling and archiving. Captured entries
     ;; get IDs automatically (see my/org-capture-stamp below).
     (require 'org-id)
     (setq org-id-link-to-org-use-id 'create-if-interactive)
+    ;; Rebuild the agenda file list before each `org-agenda' so newly
+    ;; added folders appear without restarting. The auto-refresh flag is
+    ;; let-bound to nil by the per-folder/per-file agenda commands so
+    ;; their restriction survives.
+    (defun my/org-refresh-agenda-files ()
+      (when my/org-agenda-auto-refresh
+        (setq org-agenda-files (my/org-agenda-files))))
+    (advice-add 'org-agenda :before
+                (lambda (&rest _) (my/org-refresh-agenda-files)))
     ;; Refile = MOVE to a node. org-roam-refile replaces org-refile on
     ;; every key that would invoke it (M-m C-w, C-c C-w): pick any node —
     ;; project file, area, heading with ID — via roam completion, and the
@@ -939,7 +966,8 @@ Intermediate directories are created as needed."
 Lets you look at a single project folder (or even roam) without touching
 `org-agenda-files' permanently."
   (interactive (list (read-directory-name "Agenda for: " my/org-dir)))
-  (let ((org-agenda-files (directory-files-recursively dir "\\.org\\'")))
+  (let ((org-agenda-files (directory-files-recursively dir "\\.org\\'"))
+        (my/org-agenda-auto-refresh nil))
     (if org-agenda-files
         (org-agenda)
       (user-error "No .org files under %s" dir))))
@@ -949,7 +977,8 @@ Lets you look at a single project folder (or even roam) without touching
   (interactive)
   (unless (and buffer-file-name (derived-mode-p 'org-mode))
     (user-error "Not visiting an org file"))
-  (let ((org-agenda-files (list buffer-file-name)))
+  (let ((org-agenda-files (list buffer-file-name))
+        (my/org-agenda-auto-refresh nil))
     (org-agenda)))
 
 (global-set-key (kbd "M-m p a") #'my/org-agenda-subdir)
@@ -958,78 +987,122 @@ Lets you look at a single project folder (or even roam) without touching
 
 *** Capture: typed records (Laborprotokoll, …)
 #+begin_src emacs-lisp
-;; Records of any type share records/ and a filename scheme of
-;; YYYYMMDD_titel.org; the TYPE is a #+filetags entry. A new record type
-;; (Feldbericht, Audit, …) = one more template with its own filetag —
-;; never a new folder.
+;; --- Capture targets: every template picks a folder + file under org/ -
+;; No capture has a hardcoded home. Each template prompts for a
+;; subdirectory of org/ (archive/ excluded) and a file inside it, so where
+;; something lands is decided at capture time. The name you type (Projekt,
+;; Versuchsbezeichnung) is reused as the #+title via `my/org-capture-name'.
+
+(defun my/org-slug (s)
+  "Turn S into a path-safe lowercase slug (Umlaute & Unicode bleiben)."
+  (replace-regexp-in-string "[\\/:*?\"<>|[:space:]]+" "_" (downcase s)))
+
+(defun my/org-pick-dir (&optional default)
+  "Completing-read a subdirectory of `org-directory' (archive/ excluded).
+Includes org/ itself. DEFAULT (a dir under org/) is offered as the default."
+  (let* ((root (expand-file-name org-directory))
+         (def  (when default (expand-file-name default)))
+         (dirs (cons root
+                     (directory-files-recursively
+                      root ".*" t
+                      (lambda (d) (not (equal (file-name-nondirectory
+                                               (directory-file-name d)) "archive"))))))
+         (dirs (delete-dups
+                (mapcar (lambda (d) (expand-file-name (file-name-as-directory d)))
+                        (seq-filter #'file-directory-p dirs)))))
+    (expand-file-name
+     (completing-read "Verzeichnis: " dirs nil nil nil nil def))))
+
+(defun my/org-pick-file-in (dir)
+  "Pick an existing .org file in DIR, or type a new name to create one.
+Returns the absolute path; appends .org when the typed name lacks it."
+  (let* ((existing (mapcar #'file-name-nondirectory
+                           (directory-files dir nil "\\.org\\'")))
+         (choice (completing-read "Datei (neu = eintippen): " existing nil nil)))
+    (when (or (null choice) (string-empty-p choice))
+      (user-error "Kein Dateiname"))
+    (let ((name (if (string-suffix-p ".org" choice) choice (concat choice ".org"))))
+      (expand-file-name name dir))))
+
+(defvar my/org-capture-name nil
+  "Name typed while picking a file-creating target — reused for #+title.")
+(defun my/org-capture-title ()
+  "Return `my/org-capture-name' for use in %(...) capture expansions."
+  (or my/org-capture-name ""))
+
+(defun my/org-capture-entry-file ()
+  "Prompt for a dir + file under org/; return its path (entry captures)."
+  (my/org-pick-file-in (my/org-pick-dir my/org-dir)))
+
+(defun my/org-capture-project-file ()
+  "Prompt for dir + Projektname; return path. Name stashed for #+title."
+  (setq my/org-capture-name (read-string "Projektname: "))
+  (expand-file-name (concat (my/org-slug my/org-capture-name) ".org")
+                    (my/org-pick-dir my/org-projects-dir)))
+
+(defun my/org-capture-labor-file ()
+  "Prompt for dir + Versuchsbezeichnung; return dated path. Name -> #+title."
+  (setq my/org-capture-name (read-string "Versuchsbezeichnung: "))
+  (expand-file-name
+   (concat (format-time-string "%Y%m%d") "_"
+           (my/org-slug my/org-capture-name) ".org")
+   (my/org-pick-dir my/org-records-dir)))
+
+(defun my/org-capture-meeting-file ()
+  "Prompt for dir + file under org/; return path (meeting datetree target)."
+  (my/org-pick-file-in (my/org-pick-dir my/org-records-dir)))
 
 (defun my/org-project-id-link ()
-  "Prompt for a project and return an id link to it, or \"\" for none.
-Ensures the chosen project file has a file-level ID (creating one if
-needed), so org-roam backlinks list every record taken for the project."
-  (let* ((files (directory-files my/org-projects-dir nil "\\.org\\'"))
-         (choice (completing-read "Projekt (leer = keins): " files nil nil)))
+  "Prompt for a project file anywhere under org/ (archive/ excluded) and
+return an id link to it, or \"\" for none. Ensures the chosen file has a
+file-level ID (creating one if needed), so org-roam backlinks list every
+record taken for the project."
+  (let* ((files (my/org-agenda-files))
+         (rel   (mapcar (lambda (f) (file-relative-name f (expand-file-name org-directory))) files))
+         (choice (completing-read "Projekt (leer = keins): " rel nil nil)))
     (if (or (null choice) (string-empty-p choice))
         ""
-      (with-current-buffer
-          (find-file-noselect (expand-file-name choice my/org-projects-dir))
-        (save-excursion
-          (goto-char (point-min))
-          (let ((id (org-id-get-create)))
-            (save-buffer)
-            (format "[[id:%s][%s]]" id (file-name-base choice))))))))
-
-(defvar mein/labor-titel nil)
-(defun mein/labor-capture-datei ()
-  (setq mein/labor-titel (read-string "Versuchsbezeichnung: "))
-  (concat my/org-records-dir
-          (format-time-string "%Y%m%d") "_"
-          ;; Nur pfad-illegale Zeichen ersetzen — Umlaute & Unicode bleiben.
-          ;; Verboten unter Windows/POSIX: \ / : * ? " < > | + Whitespace.
-          (replace-regexp-in-string "[\\/:*?\"<>|[:space:]]+" "_"
-                                    (downcase mein/labor-titel))
-          ".org"))
+      (let ((abs (expand-file-name choice org-directory)))
+        (with-current-buffer (find-file-noselect abs)
+          (save-excursion
+            (goto-char (point-min))
+            (let ((id (org-id-get-create)))
+              (save-buffer)
+              (format "[[id:%s][%s]]" id (file-name-base abs)))))))))
 
 (with-eval-after-load 'org
   (setq org-capture-templates
         '(("l" "Laborprotokoll" plain
-           (file mein/labor-capture-datei)
-           "#+title: %(progn mein/labor-titel)\n#+author: M. Winkler \n#+date: %<%Y-%m-%d>\n#+filetags: :labor:\n- Projekt :: %(my/org-project-id-link)\n\n* Aufbau und Messmittel\n%?\n\n* Verfahren\n# (optional – löschen falls nicht benötigt)\n\n* Versuch\n** Durchführung\n\n** Beobachtungen\n\n* Auswertung / Fazit\n"
+           (file my/org-capture-labor-file)
+           "#+title: %(my/org-capture-title)\n#+author: M. Winkler \n#+date: %<%Y-%m-%d>\n#+filetags: :labor:\n- Projekt :: %(my/org-project-id-link)\n\n* Aufbau und Messmittel\n%?\n\n* Verfahren\n# (optional – löschen falls nicht benötigt)\n\n* Versuch\n** Durchführung\n\n** Beobachtungen\n\n* Auswertung / Fazit\n"
            :unnarrowed t)
           ("p" "Projekt" plain
-           (file (lambda ()
-                   (expand-file-name
-                    (concat (replace-regexp-in-string
-                             "[\\/:*?\"<>|[:space:]]+" "_"
-                             (downcase (read-string "Projektname: ")))
-                            ".org")
-                    my/org-projects-dir)))
-           "#+title: %^{Titel}\n#+date: %<%Y-%m-%d>\n\n* Ziel\n%?\n\n* Aufgaben\n** TODO \n"
+           (file my/org-capture-project-file)
+           "#+title: %(my/org-capture-title)\n#+date: %<%Y-%m-%d>\n\n* Ziel\n%?\n\n* Aufgaben\n** TODO \n"
            :unnarrowed t)
           ("t" "Todo" entry
-           (file+headline "inbox.org" "Inbox")
+           (file my/org-capture-entry-file)
            "* TODO %?\n  %U\n")
           ("n" "Note" entry
-           (file+headline "inbox.org" "Notes")
+           (file my/org-capture-entry-file)
            "* %?\n  %U\n")
-          ;; --- One Round System additions ---
-          ;; Decisions are ENTITIES: captured ACTIVE into the inbox, then
-          ;; refiled to the project's/area's Decisions heading. Overruled
-          ;; later? M-m x s (supersede), never edit in place.
+          ;; Decisions are ENTITIES (ACTIVE). The project link is prompted
+          ;; exactly like for Laborprotokoll/Meetings. Refile later to the
+          ;; project's Decisions heading; overruled → M-m x s, never edit.
           ("d" "Decision" entry
-           (file+headline "inbox.org" "Inbox")
-           "* ACTIVE %^{Entscheidung}\n  %U\n  Kontext: %a\n  %?")
-          ;; Meetings are just another RECORD TYPE: a datetree of minutes
-          ;; in records/, written once, never edited later. Decisions made
-          ;; in the meeting get their own "d" capture and are linked here.
+           (file my/org-capture-entry-file)
+           "* ACTIVE %^{Entscheidung}\n  %U\n  - Projekt :: %(my/org-project-id-link)\n  Kontext: %a\n  %?")
+          ;; Meetings: a datetree of minutes in a file YOU pick under org/,
+          ;; written once, never edited later. Decisions made in the meeting
+          ;; get their own "d" capture and are linked here.
           ("m" "Meeting" entry
-           (file+olp+datetree "records/meetings.org")
+           (file+olp+datetree my/org-capture-meeting-file)
            "* %^{Thema}\n  - Teilnehmer :: %^{Teilnehmer}\n  - Projekt :: %(my/org-project-id-link)\n  %?"))))
 #+end_src
 
 ** One Round System — lifecycle commands
 The five rituals and where they live:
-  1. Capture       M-m c     everything enters via the inbox (t/n/d/m/l/p)
+  1. Capture       M-m c     every template asks which folder/file under org/
   2. State change  M-m M-t   reasons FORCED on WAIT/DLGT/CANCELLED/
                              ONHOLD/SUPERSEDED/DROPPED
   3. Change note   M-m M-z   org-add-note — the manual "commit message"
@@ -1049,17 +1122,23 @@ The five rituals and where they live:
 Delegation = ownership + reasoned state change:   M-m x g
 
 #+begin_src emacs-lisp
-;; Every capture becomes a node. ENTRY captures (todo, decision,
-;; meeting) get ID + CREATED on the heading; PLAIN file captures
-;; (Projekt, Laborprotokoll, future Feldbericht) get a FILE-LEVEL ID —
-;; the :PROPERTIES: drawer above #+title — so the new file is linkable
-;; as a roam node AND the links it contains (e.g. the record's
-;; "Projekt ::" line) register as backlinks on their targets.
-;; org-roam's own captures are skipped: roam manages those IDs itself,
-;; and dailies would drown in property drawers.
+;; Every capture becomes a node. EVERY captured file gets a file-level ID
+;; (idempotent: returns the existing one if present) — the :PROPERTIES:
+;; drawer at the top makes the file a linkable roam node and lets the
+;; links it contains (e.g. the record's "Projekt ::" line) register as
+;; backlinks on their targets. ENTRY captures (todo, decision, meeting)
+;; additionally get ID + CREATED on the heading; PLAIN file captures
+;; (Projekt, Laborprotokoll) also ID every TODO heading that came in via
+;; the template. org-roam's own captures are skipped: roam manages those
+;; IDs itself, and dailies would drown in property drawers.
 (defun my/org-capture-stamp ()
   "Make the just-captured item a node (One Round System)."
   (unless (bound-and-true-p org-roam-capture--node)
+    ;; Every file gets a file-level ID (the buffer is widened before this
+    ;; hook runs, so point-min is the real file start):
+    (save-excursion
+      (goto-char (point-min))
+      (org-id-get-create))
     (pcase (org-capture-get :type)
       ('entry
        (save-excursion
@@ -1068,10 +1147,25 @@ Delegation = ownership + reasoned state change:   M-m x g
          (org-set-property "CREATED"
                            (format-time-string "[%Y-%m-%d %a %H:%M]"))))
       ('plain
-       (save-excursion
-         (goto-char (point-min))
-         (org-id-get-create))))))
+       ;; TODO headings embedded in the template (e.g. a project's Aufgaben)
+       ;; get IDs too, so every todo is linkable from birth:
+       (org-map-entries
+        (lambda ()
+          (when (and (org-get-todo-state) (not (org-id-get)))
+            (org-id-get-create)))
+        nil 'file)))))
 (add-hook 'org-capture-before-finalize-hook #'my/org-capture-stamp)
+
+;; Manually typed TODO headings (added via M-RET / org-insert-todo-heading
+;; / S-M-RET) get an ID automatically, so "every todo has an ID" holds
+;; outside of capture too. Free-typed '* TODO foo' (plain text) is not
+;; covered — use a heading command, or M-x org-id-get-create on it.
+(defun my/org-id-new-todo-heading ()
+  "Give a newly inserted TODO heading an ID if it lacks one."
+  (ignore-errors
+    (when (and (org-get-todo-state) (not (org-id-get)))
+      (org-id-get-create))))
+(add-hook 'org-insert-heading-hook #'my/org-id-new-todo-heading)
 
 (defun my/org-supersede (&optional copy)
   "Supersede the entry at point with a successor sibling.
