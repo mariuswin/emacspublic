@@ -515,22 +515,48 @@ major-mode and global leader maps."
     (my/load-theme next)
     (message "Theme: %s" next)))
 
+(defun my/saved-theme ()
+  "Return the saved theme symbol, or the default (car of `my/themes')."
+  (or (and (file-exists-p my/theme-file)
+           (intern (string-trim
+                    (with-temp-buffer
+                      (insert-file-contents my/theme-file)
+                      (buffer-string)))))
+      (car my/themes)))
+
+(defun my/apply-saved-theme (&optional frame)
+  "Apply the saved theme — on FRAME if given (for daemon client frames)."
+  (condition-case nil
+      (let ((theme (my/saved-theme)))
+        (if frame
+            (with-selected-frame frame
+              (when (display-graphic-p)
+                (my/load-theme theme)))
+          (my/load-theme theme)))
+    (error (my/load-theme (car my/themes)))))
+
+(defun my/apply-theme-on-first-gui-frame (frame)
+  "Daemon only: apply the saved theme on the first GUI frame, then quit."
+  (when (and (daemonp) (frame-live-p frame) (display-graphic-p frame))
+    (my/apply-saved-theme frame)
+    (remove-hook 'after-make-frame-functions
+                 #'my/apply-theme-on-first-gui-frame)))
+
 (use-package doom-themes
+  :demand t   ; :bind would otherwise DEFER loading — without this, the
+              ; :config below never runs at startup, so NO theme loads
+              ; until M-m T is pressed (startup looks unstyled).
   :custom
   (doom-themes-enable-bold t)
   (doom-themes-enable-italic t)
   :bind (("M-m T" . my/theme-toggle))
   :config
-  (condition-case nil
-      (my/load-theme
-       (or (and (file-exists-p my/theme-file)
-                (intern (string-trim
-                         (with-temp-buffer
-                           (insert-file-contents my/theme-file)
-                           (buffer-string)))))
-           (car my/themes)))
-    (error (my/load-theme (car my/themes))))
-  (doom-themes-org-config))
+  (doom-themes-org-config)
+  ;; Non-daemon: a GUI frame already exists, so apply now. Daemon: there
+  ;; is no GUI frame at init, so apply on the first client frame instead.
+  (if (daemonp)
+      (add-hook 'after-make-frame-functions #'my/apply-theme-on-first-gui-frame)
+    (my/apply-saved-theme)))
 
 ;; Optional: a clean modeline that pairs well with doom-themes and shows
 ;; nerd-icons. Comment out if you prefer the vanilla modeline.
