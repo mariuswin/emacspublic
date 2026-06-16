@@ -1651,6 +1651,57 @@ the leaders and frees the plain keys for copy/cut.
 (global-set-key (kbd "C-s") #'save-buffer)
 #+end_src
 
+*** Browser-style buffer cycling (C-Tab / C-S-Tab)
+#+begin_src emacs-lisp
+;; Ctrl+Tab / Ctrl+Shift+Tab flip through open buffers like browser tabs.
+;; Hold Ctrl and tap Tab to step forward, add Shift to step back. Each
+;; tap redraws a one-line "tab strip" in the echo area: the current
+;; buffer is highlighted and first (the rest follow in most-recent-first
+;; order), and the strip auto-clears ~1.5 s after you stop. Every open
+;; buffer is included.
+;;
+;; Why no transient keymap: every cycling key is a real C-Tab/C-S-Tab, so
+;; it hits the global binding directly and plain Tab is never hijacked.
+;; `next-buffer'/`previous-buffer' use Emacs's per-window cycle list, so
+;; taps traverse A->B->C->A without bouncing back and forth.
+(defvar my/cycle--timer nil)
+
+(defun my/cycle--strip ()
+  "MRU buffer names as a tab strip; current buffer highlighted and first."
+  (let ((cur (current-buffer)))
+    (mapconcat
+     (lambda (b)
+       (let ((n (buffer-name b)))
+         (if (eq b cur)
+             (propertize (concat "[ " n " ]") 'face 'success)
+           (propertize n 'face 'shadow))))
+     (buffer-list) "  ")))
+
+(defun my/cycle--echo ()
+  "Show the buffer-cycle tab strip in the echo area, auto-hide after 1.5 s."
+  (message "%s" (my/cycle--strip))
+  (when my/cycle--timer (cancel-timer my/cycle--timer))
+  (setq my/cycle--timer (run-with-timer 1.5 nil (lambda () (message nil)))))
+
+(defun my/cycle-next-buffer (&optional n)
+  "Cycle to the next buffer (browser Ctrl+Tab)."
+  (interactive "p")
+  (next-buffer (or n 1))
+  (my/cycle--echo))
+(defun my/cycle-prev-buffer (&optional n)
+  "Cycle to the previous buffer (browser Ctrl+Shift+Tab)."
+  (interactive "p")
+  (previous-buffer (or n 1))
+  (my/cycle--echo))
+
+(global-set-key (kbd "C-<tab>")           #'my/cycle-next-buffer)
+;; Ctrl+Shift+Tab is reported inconsistently on Windows — bind all the
+;; forms you might see in C-h k, then trim to the one that fires:
+(global-set-key (kbd "C-S-<iso-lefttab>") #'my/cycle-prev-buffer)
+(global-set-key (kbd "C-S-<tab>")         #'my/cycle-prev-buffer)
+(global-set-key (kbd "<C-backtab>")       #'my/cycle-prev-buffer)
+#+end_src
+
 *** VS Code alignment: palette, quick open, replace, goto, select all
 #+begin_src emacs-lisp
 ;; Help lives on F1 (Emacs default); C-h becomes find & replace.
@@ -1957,6 +2008,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
 
       (my/start--heading "  Files & buffers:")
       (my/start--key "C-p"     "Quick open (buffers + recent files)")
+      (my/start--key "C-Tab / C-S-Tab" "Cycle buffers (shown in echo area)")
       (my/start--key "C-o"     "Open file")
       (my/start--key "C-n"     "New untitled buffer")
       (my/start--key "C-w"     "Close buffer")
