@@ -68,15 +68,15 @@ behavior (agenda membership, mutability). A =#+filetags= entry marks the
 type or note type is one new template with its own filetag, never a new
 folder.
 
-| Folder     | Default use                                                                      |
-|------------+----------------------------------------------------------------------------------|
-| =inbox.org=  | unsorted front door (just one file you can pick during capture)                   |
-| =dailies/=   | journal, one file per day; optional; never edited after its day                    |
-| =records/=   | typed records (=:labor:=, =:meeting:=,  ); immutable; link projects by ID          |
+| Folder     | Default use                                                                     |
+|------------+---------------------------------------------------------------------------------|
+| =inbox.org=  | unsorted front door (just one file you can pick during capture)                 |
+| =dailies/=   | journal, one file per day; optional; never edited after its day                 |
+| =records/=   | typed records (=:labor:=, =:meeting:=,  ); immutable; link projects by ID           |
 | =projects/=  | one file per project (the default for the =p= capture)                            |
-| =areas/=     | machines, process domains, teams                                                  |
+| =areas/=     | machines, process domains, teams                                                |
 | =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places   with TODO lifecycles) |
-| =*/archive/= | every folder gets one; archive/ folders are the only ones NOT in the agenda       |
+| =*/archive/= | every folder gets one; archive/ folders are the only ones NOT in the agenda     |
 
 The agenda is =directory-files-recursively= over =org/= minus any
 =archive/= folder, rebuilt before each =M-m a=. Add a folder and it shows
@@ -717,7 +717,8 @@ major-mode and global leader maps."
 ;; right, left for dired navigation
 (with-eval-after-load 'dired
   (keymap-set dired-mode-map "<right>" #'dired-find-file)
-  (keymap-set dired-mode-map "<left>" #'dired-up-directory))
+  (keymap-set dired-mode-map "<left>" #'dired-up-directory)
+  (keymap-set dired-mode-map "C-o" #'consult-find))
 #+end_src
 
 *** Windows-Explorer-style keys in dired (dirvish inherits these)
@@ -830,7 +831,56 @@ Intermediate directories are created as needed."
 
 ** Org mode + ecosystem
 #+begin_src emacs-lisp
-  (defvar my/org-dir "~/org/")
+  ;; --- Org directory switching -------------------------------------------
+  ;; Switch between multiple org directories (e.g., private vs work).
+  ;; M-m O toggles; previously used directories are remembered.
+  (defvar my/org-dirs-file (expand-file-name "org-dirs" user-emacs-directory)
+    "File storing known org directories (one per line, first = current).")
+
+  (defun my/org-dirs-load ()
+    "Load known org directories from file. Return list, first is current."
+    (if (file-exists-p my/org-dirs-file)
+        (with-temp-buffer
+          (insert-file-contents my/org-dirs-file)
+          (split-string (buffer-string) "\n" t))
+      (list (expand-file-name "~/org/"))))
+
+  (defun my/org-dirs-save (dirs)
+    "Save DIRS to file (first entry = current)."
+    (with-temp-file my/org-dirs-file
+      (insert (string-join dirs "\n"))))
+
+  (defun my/org-update-paths ()
+    "Update all derived org paths after changing `my/org-dir'."
+    (setq my/org-projects-dir (expand-file-name "projects/" my/org-dir)
+          my/org-areas-dir    (expand-file-name "areas/" my/org-dir)
+          my/org-notes-dir    (expand-file-name "notes/" my/org-dir)
+          my/org-records-dir  (expand-file-name "records/" my/org-dir)
+          org-directory       my/org-dir
+          org-roam-directory  my/org-dir
+          org-download-image-dir (expand-file-name "images" my/org-dir))
+    (when (fboundp 'org-roam-db-sync)
+      (org-roam-db-sync)))
+
+  (defun my/org-switch-dir (dir)
+    "Switch org directory to DIR. With completion from known directories."
+    (interactive
+     (let* ((known (my/org-dirs-load))
+            (choice (completing-read "Org directory: " known nil nil)))
+       (list (expand-file-name (file-name-as-directory choice)))))
+    (setq my/org-dir dir)
+    (my/org-update-paths)
+    ;; Update known dirs: move chosen to front, add if new
+    (let* ((known (my/org-dirs-load))
+           (updated (cons dir (delete dir known))))
+      (my/org-dirs-save updated))
+    (message "Org directory: %s" my/org-dir))
+
+  (global-set-key (kbd "M-m O") #'my/org-switch-dir)
+
+  ;; Load saved org directory on startup
+  (defvar my/org-dir (car (my/org-dirs-load)))
+
   (defvar my/org-projects-dir (expand-file-name "projects/" my/org-dir)
     "One org file per project. Agenda source, org-edna deps, gantt export.
   Projects END: a finished/cancelled project file moves WHOLE into
@@ -849,18 +899,6 @@ Intermediate directories are created as needed."
   ,#+filetags entry set by the capture template, not a directory. Records
   are written once and never edited after their day; they reference
   projects/areas/tasks by ID link only.")
-
-  ;; Create the whole layout up front so captures/agenda/archiving never
-  ;; hit ENOENT (org-archive does NOT create missing directories):
-  (dolist (d (list my/org-dir my/org-projects-dir my/org-areas-dir
-                   my/org-records-dir my/org-notes-dir
-                   (expand-file-name "images/" my/org-dir)
-                   (expand-file-name "dailies/" my/org-dir)
-                   (expand-file-name "archive/" my/org-dir)
-                   (expand-file-name "archive/" my/org-projects-dir)
-                   (expand-file-name "archive/" my/org-areas-dir)
-                    (expand-file-name "archive/" my/org-records-dir)))
-    (make-directory d t))
 
   ;; --- Agenda = every .org under org/, except any archive/ folder ----
   ;; Folders are organizational defaults only; the agenda sees ALL of them
@@ -1754,7 +1792,8 @@ the leaders and frees the plain keys for copy/cut.
 (global-set-key (kbd "C-S-p") #'execute-extended-command) ;; command palette
 (global-set-key (kbd "C-p")   #'consult-recent-file)     ;; recent files
 (global-set-key (kbd "C-S-f") #'consult-ripgrep)         ;; ripgrep search
-(global-set-key (kbd "C-o")   #'dired-jump)              ;; dired here
+(global-set-key (kbd "C-t")   #'dired-jump)              ;; dired here
+(global-set-key (kbd "C-o")   #'consult-find)            ;; fuzzy file search (recursive)
 (global-set-key (kbd "C-S-o") #'consult-dir)             ;; pick directory
 (global-set-key (kbd "C-h")   #'query-replace)           ;; find & replace (this buffer)
 
@@ -2098,7 +2137,8 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "C-p"     "Recent files")
       (my/start--key "C-S-f"   "Ripgrep across project")
       (my/start--key "C-Tab"   "Buffer switcher (Tab cycles, RET picks)")
-      (my/start--key "C-o"     "Dired here")
+      (my/start--key "C-t"     "Dired here")
+      (my/start--key "C-o"     "Fuzzy file search (recursive)")
       (my/start--key "C-S-o"   "Pick directory")
       (my/start--key "C-n"     "New untitled buffer")
       (my/start--key "C-w"     "Close buffer")
@@ -2126,6 +2166,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (insert "\n")
 
       (my/start--heading "  Org & projects:")
+      (my/start--key "M-m O"   "Switch org directory (private/work)")
       (my/start--key "M-m a"   "Agenda (a m = My work, a o = decisions)")
       (my/start--key "M-m c"   "Capture (t=Todo d=Decision m=Meeting l=Labor)")
       (my/start--key "M-m M-t" "Set state (reasons forced on @-states)")
@@ -2224,6 +2265,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
    M-m a d   today as a timeline of clocked intervals + report
 
  Projects (M-m p ...)
+   M-m O     switch org directory (private/work/...)
    M-m p a   agenda for a subfolder (prompted)
    M-m p f   agenda for current file only
    M-m p g   export Mermaid gantt (edna BLOCKER -> dependencies)
@@ -2234,7 +2276,8 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
 
  VS Code keys
    C-p       recent files          C-S-p command palette (M-x)
-   C-S-f     ripgrep (project)     C-o   dired here
+   C-S-f     ripgrep (project)     C-t   dired here
+   C-o       fuzzy file search
    C-S-o     pick directory
    C-n       new untitled buffer   C-w   close buffer
    C-b       toggle file tree      C-f   find in buffer
