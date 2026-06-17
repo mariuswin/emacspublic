@@ -981,6 +981,25 @@ restriction intact.")
     (define-key org-mode-map (kbd "C-c M-w") #'org-roam-refile))
 #+end_src
 
+*** Org heading appearance
+Bigger headings with subtle background highlight.
+#+begin_src emacs-lisp
+(defun my/org-heading-faces ()
+  "Style org headings and title: larger fonts."
+  (set-face-attribute 'org-document-title nil :weight 'bold :height 1.6)
+  (dolist (face-height '((org-level-1 . 1.4)
+                         (org-level-2 . 1.25)
+                         (org-level-3 . 1.15)
+                         (org-level-4 . 1.1)))
+    (set-face-attribute (car face-height) nil
+                        :weight 'bold
+                        :height (cdr face-height))))
+
+(add-hook 'org-mode-hook #'my/org-heading-faces)
+;; Re-apply after theme switch
+(add-hook 'after-load-theme-hook #'my/org-heading-faces)
+#+end_src
+
 *** Debounced state-change logging
 When cycling through states rapidly, only log the final state after 1.5s idle.
 #+begin_src emacs-lisp
@@ -1733,9 +1752,11 @@ the leaders and frees the plain keys for copy/cut.
 #+begin_src emacs-lisp
 ;; Help lives on F1 (Emacs default); C-h becomes find & replace.
 (global-set-key (kbd "C-S-p") #'execute-extended-command) ;; command palette
-(global-set-key (kbd "C-p")   #'consult-buffer)  ;; quick open: buffers + recent files
-(global-set-key (kbd "C-o")   #'find-file)       ;; open file
-(global-set-key (kbd "C-h")   #'query-replace)   ;; find & replace (this buffer)
+(global-set-key (kbd "C-p")   #'consult-recent-file)     ;; recent files
+(global-set-key (kbd "C-S-f") #'consult-ripgrep)         ;; ripgrep search
+(global-set-key (kbd "C-o")   #'dired-jump)              ;; dired here
+(global-set-key (kbd "C-S-o") #'consult-dir)             ;; pick directory
+(global-set-key (kbd "C-h")   #'query-replace)           ;; find & replace (this buffer)
 
 ;; C-S-h: find & replace across the whole project (VS Code: Ctrl+Shift+H).
 ;; Inside a project (= git repo or project.el root) all project files are
@@ -2074,16 +2095,15 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
                'face 'font-lock-comment-face))
 
       (my/start--heading "  Files & buffers:")
-      (my/start--key "C-p"     "Quick open (buffers + recent files)")
-      (my/start--key "C-Tab" "Buffer switcher (Tab cycles, RET picks)")
-      (my/start--key "C-o"     "Open file")
+      (my/start--key "C-p"     "Recent files")
+      (my/start--key "C-S-f"   "Ripgrep across project")
+      (my/start--key "C-Tab"   "Buffer switcher (Tab cycles, RET picks)")
+      (my/start--key "C-o"     "Dired here")
+      (my/start--key "C-S-o"   "Pick directory")
       (my/start--key "C-n"     "New untitled buffer")
       (my/start--key "C-w"     "Close buffer")
       (my/start--key "C-s"     "Save")
       (my/start--key "C-b"     "Toggle file tree (dirvish)")
-      (my/start--key "M-m f r" "Recent files")
-      (my/start--key "M-m f g" "Ripgrep across project")
-      (my/start--key "M-o M-j" "Dired here")
       (insert "\n")
 
       (my/start--heading "  Dired (file manager):")
@@ -2213,12 +2233,13 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
    M-m M-g   gptel-edit
 
  VS Code keys
-   C-p       quick open            C-S-p command palette (M-x)
-   C-o       open file             C-n   new untitled buffer
-   C-w       close buffer          C-b   toggle file tree
-   C-f       find in buffer        C-h   find & replace (help -> F1!)
-   C-g       go to line            C-a   select all
-   C-S-h     replace in files (project-wide)
+   C-p       recent files          C-S-p command palette (M-x)
+   C-S-f     ripgrep (project)     C-o   dired here
+   C-S-o     pick directory
+   C-n       new untitled buffer   C-w   close buffer
+   C-b       toggle file tree      C-f   find in buffer
+   C-h       find & replace        C-g   go to line
+   C-a       select all            C-S-h replace in files (project-wide)
 
  Git
    M-o g     magit status          M-x magit-init  create repo
