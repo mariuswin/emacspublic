@@ -1,50 +1,50 @@
-#+TITLE:   Emacs — the One Round System
+#+TITLE:   Emacs   the One Round System
 #+AUTHOR:  M. Winkler
 #+STARTUP: overview
 
 * How this file works
 
 This is a literate configuration: the guide to the system and its
-implementation live in one document. =init.el= is only a bootstrap —
+implementation live in one document. =init.el= is only a bootstrap  
 it calls =org-babel-load-file= on this file, which extracts every
 =emacs-lisp= block (in order) into =config.el= and loads it.
 Re-tangling happens only when =config.org= is newer than =config.el=,
 so startup stays fast after the first run.
 
 To change the configuration: edit the blocks here, restart Emacs (or
-=M-x org-babel-load-file= on this file). Never edit =config.el= — it
+=M-x org-babel-load-file= on this file). Never edit =config.el=   it
 is generated. In a team, this file lives in the shared repository: the
 conventions that must be universal (keyword set, forced-reason states,
 archive location) are distributed as code, not as a wiki page.
 
 One standing rule from the leader-key mechanism: never bind anything
-under =C-c= in this file — always bind under =M-m= directly.
+under =C-c= in this file   always bind under =M-m= directly.
 
 * The One Round System
 
 ** The problem it solves
 
 Plain-text project management conflates two kinds of information.
-Records of moments — a daily note, a protocol, minutes — should never
-be edited after the fact. Current truth — the state of a task, the
-revision of a parameter, whether a project is alive — must evolve.
+Records of moments   a daily note, a protocol, minutes   should never
+be edited after the fact. Current truth   the state of a task, the
+revision of a parameter, whether a project is alive   must evolve.
 When both live in the same files, every change either corrupts a
 record or goes unrecorded; reasons evaporate; deleted dead ends take
 their lessons with them. The system below resolves this with one
 mechanism that works identically for tasks, tickets, projects,
 decisions, parameters, documents, and processes.
 
-** The model — three shapes, one primitive
+** The model   three shapes, one primitive
 
-Every piece of information has one of three shapes, and the shape —
-never the content type — determines its handling:
+Every piece of information has one of three shapes, and the shape  
+never the content type   determines its handling:
 
 - A *record of a moment* (daily note, Laborprotokoll, minutes): true
   forever as written, never edited after its day, references
   everything else only by link.
 - An *entity* (task, project, decision, parameter, document, process):
-  has current truth that changes, plus a history of changes — with
-  reasons — that must stay attached. Entities are born, change state,
+  has current truth that changes, plus a history of changes   with
+  reasons   that must stay attached. Entities are born, change state,
   and die (finished, cancelled, or superseded), at which point they
   leave the workspace but not the record.
 - An *understanding* (a concept note): your current best explanation,
@@ -53,7 +53,7 @@ never the content type — determines its handling:
 
 Everything rests on one primitive: *a timestamped, author-stamped,
 reasoned log entry, attached to the thing that changed, written at the
-moment of change.* Org provides it twice — automatically on state
+moment of change.* Org provides it twice   automatically on state
 changes (with reasons /forced/ where they matter), and manually via
 =M-m M-z= for content edits. Delegation, supersession, document
 revisions, and archiving are this primitive at different granularities.
@@ -62,9 +62,9 @@ revisions, and archiving are this primitive at different granularities.
 
 Every folder under =org/= is just a folder: it lives in the agenda, and
 capture asks you which one to file into. The folders below exist only as
-handy default targets and as archive homes — they no longer encode
+handy default targets and as archive homes   they no longer encode
 behavior (agenda membership, mutability). A =#+filetags= entry marks the
-/kind/ of content (=:labor:=, =:meeting:=, =:concept:=, …); one record
+/kind/ of content (=:labor:=, =:meeting:=, =:concept:=,  ); one record
 type or note type is one new template with its own filetag, never a new
 folder.
 
@@ -72,10 +72,10 @@ folder.
 |------------+----------------------------------------------------------------------------------|
 | =inbox.org=  | unsorted front door (just one file you can pick during capture)                   |
 | =dailies/=   | journal, one file per day; optional; never edited after its day                    |
-| =records/=   | typed records (=:labor:=, =:meeting:=, …); immutable; link projects by ID          |
+| =records/=   | typed records (=:labor:=, =:meeting:=,  ); immutable; link projects by ID          |
 | =projects/=  | one file per project (the default for the =p= capture)                            |
 | =areas/=     | machines, process domains, teams                                                  |
-| =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places — with TODO lifecycles) |
+| =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places   with TODO lifecycles) |
 | =*/archive/= | every folder gets one; archive/ folders are the only ones NOT in the agenda       |
 
 The agenda is =directory-files-recursively= over =org/= minus any
@@ -84,8 +84,8 @@ up; archive one (a subtree via =M-m x a=, or a whole file via =git mv=
 into an =archive/=) and it drops out.
 
 When a project changes something that belongs to an area (a machine
-parameter, a standard process), the change happens *at the area* —
-where current truth lives — with a log note linking the project that
+parameter, a standard process), the change happens *at the area*  
+where current truth lives   with a log note linking the project that
 caused it. Links are the joins; nothing is duplicated.
 
 ** What dailies are for (and when to skip them)
@@ -93,12 +93,12 @@ caused it. Links are the joins; nothing is duplicated.
 The daily note is the journal: the moment-record for everything that
 has no other home. Because task creation and every state change are
 already logged mechanically (=CREATED= stamps, =:LOGBOOK:= entries),
-dailies carry *zero bookkeeping duty* — never write "opened task X"
+dailies carry *zero bookkeeping duty*   never write "opened task X"
 into one. What remains for them is narrative: observations too small
-for a Laborprotokoll, context ("Lieferant angerufen, Müller meldet
+for a Laborprotokoll, context ("Lieferant angerufen, M�ller meldet
 sich Montag"), half-thoughts, the informal counterpart to the formal
 records. Their use case is answering, years later, "what was going on
-around day X — what did I know, what was I trying?".
+around day X   what did I know, what was I trying?".
 
 If you don't journal, skip dailies entirely: nothing else in the
 system depends on them. They exist as capacity (=M-m n j=), not as
@@ -108,36 +108,36 @@ obligation.
 
 Everything you will ever do in this system is one of five moves:
 
-1. *Capture* — =M-m c= (=t= todo, =n= note, =d= decision, =m= meeting,
+1. *Capture*   =M-m c= (=t= todo, =n= note, =d= decision, =m= meeting,
    =l= Laborprotokoll, =p= project). Every template prompts for the
    folder (and file) under =org/= to file into; the typed name becomes
-   the =#+title=. ID and =CREATED= stamp are automatic — every captured
+   the =#+title=. ID and =CREATED= stamp are automatic   every captured
    file gets a file-level ID, every captured/todo heading gets a heading
    ID, so every captured thing is a linkable roam node from birth. You
-   never create entities by typing raw headings mid-thought — and that is
+   never create entities by typing raw headings mid-thought   and that is
    what keeps moment-records safe: they only ever contain /links/ to
    entities, never the entities themselves.
-2. *State change* — =M-m M-t=. Where a reason matters (WAIT, DLGT,
+2. *State change*   =M-m M-t=. Where a reason matters (WAIT, DLGT,
    CANCELLED, ONHOLD, SUPERSEDED, DROPPED), org refuses to proceed
    without one and stamps time + author into the =:LOGBOOK:=.
    Delegation is =M-m x g=: OWNER is set, the forced note is where you
    write the context the colleague needs.
-3. *Change note* — =M-m M-z=. The manual twin of the state change: any
-   meaningful content edit to an entity — a parameter value, a BOM
-   row, a protocol step — gets a note saying WHAT changed and WHY.
+3. *Change note*   =M-m M-z=. The manual twin of the state change: any
+   meaningful content edit to an entity   a parameter value, a BOM
+   row, a protocol step   gets a note saying WHAT changed and WHY.
    For document revisions, bump a =:REV:= property in the same breath
-   and write the note in change-notice style: "Rev C: Pos 7 NBR →
-   PEEK — NBR-Dichtungen versagen über 140 °C." The note is the
+   and write the note in change-notice style: "Rev C: Pos 7 NBR  
+   PEEK   NBR-Dichtungen versagen �ber 140 �C." The note is the
    searchable semantic layer; =git log -p= on the file is the
    full-text diff layer. Between the two, even a 400-row BOM has
    complete browsable history with zero snapshots in the workspace.
-4. *Supersede* — =M-m x s=. When something is /replaced/ rather than
+4. *Supersede*   =M-m x s=. When something is /replaced/ rather than
    revised or finished: decisions overruled, approaches abandoned,
    processes redesigned. Old and new are linked both ways by ID, the
    reason is forced, and the old node keeps its full content as a
    readable record until archived. =C-u M-m x s= starts the successor
-   as a full copy — for document-style rework.
-5. *Archive* — =M-m x a= for subtrees (→ =archive/= next to the file,
+   as a full copy   for document-style rework.
+5. *Archive*   =M-m x a= for subtrees (  =archive/= next to the file,
    stamped with time, origin, final state), =git mv= for whole project
    files. "Terminal" and "archivable" are separate judgements: a
    SUPERSEDED process revision stays in its area file while anyone
@@ -146,7 +146,7 @@ Everything you will ever do in this system is one of five moves:
 The routing between 2, 4 and in-place revision comes down to two
 distinctions. /Finished vs. replaced/: DONE and CANCELLED end a thing;
 SUPERSEDED says "a successor exists" and points to it. /Revision vs.
-supersession/: the same artifact evolving (BOM Rev B → Rev C) is an
+supersession/: the same artifact evolving (BOM Rev B   Rev C) is an
 in-place edit plus a change note, with git holding the old full text;
 a different artifact taking its place (approach B replaces approach A)
 is a supersession, where the old node remains readable forever.
@@ -154,14 +154,14 @@ is a supersession, where the old node remains readable forever.
 #+begin_src org
 ,* SUPERSEDED Dichtungswerkstoff: NBR
 :PROPERTIES:
-:ID:            abc…
-:SUPERSEDED_BY: [[id:xyz…]]
+:ID:            abc 
+:SUPERSEDED_BY: [[id:xyz ]]
 :END:
 
 ,* ACTIVE Dichtungswerkstoff: PEEK
 :PROPERTIES:
-:ID:         xyz…
-:SUPERSEDES: [[id:abc…]]
+:ID:         xyz 
+:SUPERSEDES: [[id:abc ]]
 :END:
 #+end_src
 
@@ -171,11 +171,11 @@ Tasks gate each other through two properties, and every captured task
 already carries the ID this needs (=M-x org-id-copy= on a heading puts
 its ID on the clipboard):
 
-- =:BLOCKER: ids(<id>)= — this task cannot be set DONE while the
+- =:BLOCKER: ids(<id>)=   this task cannot be set DONE while the
   referenced task is still open. For simple chains, relative forms
   save the ID juggling: =:BLOCKER: previous-sibling= makes tasks
   depend on the one above them in the file.
-- =:TRIGGER: ids(<id>) todo!(NEXT)= — when /this/ task is closed, the
+- =:TRIGGER: ids(<id>) todo!(NEXT)=   when /this/ task is closed, the
   referenced task is automatically set to NEXT, so the next step
   surfaces in the agenda by itself. =next-sibling= works here too.
 
@@ -183,15 +183,15 @@ A typical project chain:
 
 #+begin_src org
 ,* Aufgaben
-,** TODO Prüfstand aufbauen
+,** TODO Pr�fstand aufbauen
 SCHEDULED: <2026-06-15 Mo> DEADLINE: <2026-06-19 Fr>
 :PROPERTIES:
-:ID:      aaa-1111-…
+:ID:      aaa-1111- 
 :TRIGGER: next-sibling todo!(NEXT)
 :END:
 ,** TODO Messreihe fahren
 :PROPERTIES:
-:BLOCKER: ids("aaa-1111-…")
+:BLOCKER: ids("aaa-1111- ")
 :EFFORT:  3d
 :END:
 #+end_src
@@ -199,7 +199,7 @@ SCHEDULED: <2026-06-15 Mo> DEADLINE: <2026-06-19 Fr>
 The Gantt chart falls straight out of this: =M-m p g= in a project
 file builds a Mermaid gantt from every task. =SCHEDULED= is the start,
 =DEADLINE= the end (otherwise =:EFFORT:= like "3d" sets the duration,
-default one day); =BLOCKER ids(…)= entries become =after=-dependencies,
+default one day); =BLOCKER ids( )= entries become =after=-dependencies,
 so a task without its own SCHEDULED starts when its blockers end.
 DONE/CANCELLED render greyed out, NEXT renders as active, priority
 =[#A]= as critical, and top-level headings become sections. The export
@@ -207,11 +207,11 @@ writes =<project>.mmd= next to the org file and, when mermaid-cli is
 installed (=npm i -g @mermaid-js/mermaid-cli=), renders and opens
 =<project>.svg=.
 
-** Time tracking — where the clock lives
+** Time tracking   where the clock lives
 
-Clock on the entity, never in the daily. =M-m i= on a task clocks in —
+Clock on the entity, never in the daily. =M-m i= on a task clocks in  
 the clock lines land in /that task's/ =:LOGBOOK:=, exactly where the
-rest of its history lives — =M-m o= clocks out, =M-m j= jumps to the
+rest of its history lives   =M-m o= clocks out, =M-m j= jumps to the
 running clock, and =C-u M-m i= picks from recently clocked tasks, so
 switching work is two keys from anywhere. The running clock shows in
 the modeline and survives restarts.
@@ -220,7 +220,7 @@ Clocking into dailies would be an anti-pattern: it attributes time to
 the /date/ instead of the /work/, and "wieviel Zeit hat Projekt X
 gefressen" becomes unanswerable. The daily perspective on time is a
 *view*, not a storage location: =M-m a d= shows today as a timeline of
-all clocked intervals with a clock report on top — an automatically
+all clocked intervals with a clock report on top   an automatically
 written diary of the day. For per-project totals, drop a clocktable
 into the project file and update it with =M-m M-c=:
 
@@ -230,36 +230,36 @@ into the project file and update it with =M-m M-c=:
 #+end_src
 
 If anything, this /reduces/ what dailies are for: the timeline of the
-day writes itself, so the daily note stays purely narrative — what you
+day writes itself, so the daily note stays purely narrative   what you
 observed and thought, not what you did when.
 
 ** Working in a team
 
 The repository is the team: one git repo holds the whole tree,
 everyone clones it, pulls before the daily review, pushes after. The
-one-file-per-project rule is also the merge-conflict strategy — people
+one-file-per-project rule is also the merge-conflict strategy   people
 on different projects never touch the same file, and when two people
 do, logbook collisions are append-append conflicts (keep both lines,
 done).
 
 Delegation is ownership plus a reasoned state change. The task stays
-in the project file where it belongs — tasks live with their project,
-not with their person — and the colleague finds it in their
+in the project file where it belongs   tasks live with their project,
+not with their person   and the colleague finds it in their
 =M-m a m= ("My work") view after the next pull. Each person sets
 =my/org-user= to match their git identity.
 
 Colleagues without Emacs are degraded gracefully, not excluded: the
 tree is plain text, any editor opens it, any project-wide search
-replaces ripgrep, and the two human rules — never edit moment-records,
-write a dated reason line when you change an entity — are followable
+replaces ripgrep, and the two human rules   never edit moment-records,
+write a dated reason line when you change an entity   are followable
 in Notepad. The tooling automates the conventions; it doesn't define
 them.
 
 Two conventions no tool can enforce, agree on them explicitly: reasons
 are written *for the stranger* (the colleague three years from now who
-finds the node via search — "Lieferantenproblem" helps nobody; "Müller
+finds the node via search   "Lieferantenproblem" helps nobody; "M�ller
 GmbH hat die 12mm-NBR-Variante eingestellt, keine Zweitquelle unter
-5k MOQ" is gold), and the daily inbox review actually happens — an
+5k MOQ" is gold), and the daily inbox review actually happens   an
 inbox that silts up becomes a second workspace, and the system dies
 of it.
 
@@ -267,22 +267,22 @@ of it.
 
 | Situation                                        | Do this                                                                      |
 |--------------------------------------------------+------------------------------------------------------------------------------|
-| Anything incoming — idea, request, action needed | =M-m c t=; pick the folder/file; shape it at the daily review                  |
+| Anything incoming   idea, request, action needed | =M-m c t=; pick the folder/file; shape it at the daily review                  |
 | What happened today, context, half-thoughts      | =M-m n j= daily note; link entities; never edit after today                  |
-| Experiment                                       | =M-m c l= → typed record in =records/=, project linked by ID                 |
+| Experiment                                       | =M-m c l=   typed record in =records/=, project linked by ID                 |
 | Meeting                                          | =M-m c m=; decisions made there get =M-m c d= and are linked from the minutes |
-| New task                                         | capture, then refile (=M-m M-w= — picks any node via roam) into the project  |
-| Hand a task to a colleague                       | =M-m x g= — OWNER set, context note forced; appears in their My-work view    |
-| Task no longer relevant                          | =M-m M-t c= — reason forced; =M-m x a= to archive                            |
-| Machine parameter changes                        | edit the value in the area file; =M-m M-z=: alt → neu, warum, link the cause |
-| Design decision made                             | =M-m c d= → refile to the project's Decisions                                |
+| New task                                         | capture, then refile (=M-m M-w=   picks any node via roam) into the project  |
+| Hand a task to a colleague                       | =M-m x g=   OWNER set, context note forced; appears in their My-work view    |
+| Task no longer relevant                          | =M-m M-t c=   reason forced; =M-m x a= to archive                            |
+| Machine parameter changes                        | edit the value in the area file; =M-m M-z=: alt   neu, warum, link the cause |
+| Design decision made                             | =M-m c d=   refile to the project's Decisions                                |
 | Decision overruled / approach replaced           | =M-m x s= on the old node; reason forced; write the successor                |
 | Spec/BOM/protocol revision (same artifact)       | edit in place, bump =:REV:=, =M-m M-z= in change-notice style; =git log -p= has the diff |
 | Document replaced by a different approach        | =C-u M-m x s= (successor = full copy), rework it                             |
 | Project finished or cancelled                    | mark the heading (reason if cancelled); =git mv= to =projects/archive/=      |
-| Learned something worth keeping                  | =M-m n c=, template =c= → concept note in =notes/=; rewrite freely forever   |
-| Movie / place / item to track                    | =M-m n c=, template =k= → collection item in =notes/=                        |
-| "Didn't we already try this once?"               | =M-m f g= from =~/org= — archives included; read the logbook you find        |
+| Learned something worth keeping                  | =M-m n c=, template =c=   concept note in =notes/=; rewrite freely forever   |
+| Movie / place / item to track                    | =M-m n c=, template =k=   collection item in =notes/=                        |
+| "Didn't we already try this once?"               | =M-m f g= from =~/org=   archives included; read the logbook you find        |
 
 ** The loop
 
@@ -291,7 +291,7 @@ cancel-with-reason); optionally write the daily note; push. Weekly,
 twenty minutes: sweep WAIT and DLGT (anything older than expected gets
 a nudge or a state change with reason); archive everything terminal
 whose dependencies are gone; skim ACTIVE decisions for any that
-reality has silently overruled — supersede those /now/, while you
+reality has silently overruled   supersede those /now/, while you
 still remember why.
 
 ** Why this stays discoverable
@@ -301,12 +301,12 @@ own vocabulary, so future searches for the problem find the abandoned
 attempt. Supersession links form chains walkable in both directions
 from any point. The archives are ordinary org files under the same
 root, so ripgrep and the org-roam graph reach them without knowing
-they are archives — and because every record links its project by ID,
+they are archives   and because every record links its project by ID,
 a project's backlink buffer lists every protocol and meeting ever
 taken for it, even after the project itself was archived. Git
 underneath remains what it is good at: full-text diffs of large
-documents, disaster recovery, proof. The semantic history — what
-changed, when, by whom, and why — lives in the org layer, where search
+documents, disaster recovery, proof. The semantic history   what
+changed, when, by whom, and why   lives in the org layer, where search
 can reach it.
 
 * Implementation
@@ -338,7 +338,7 @@ line must carry the lexical-binding cookie:
       use-package-expand-minimally t)
 #+end_src
 
-** Leader keys — M-m ≙ C-c, M-o ≙ C-x
+** Leader keys   M-m   C-c, M-o   C-x
 M-m is bound to the *same keymap object* that C-c points to
 (`mode-specific-map') and M-o to `ctl-x-map'. That way C-c/C-x can be
 repurposed as copy/cut further down without losing the prefix maps, and
@@ -351,8 +351,8 @@ the CUA section). MUST run before any `:bind ("M-m ...")' below.
 (define-key global-map (kbd "M-o") ctl-x-map)
 
 ;; RULE: never bind mode-local keys under "C-c ..." anywhere in this config
-;; after this point — always bind them under "M-m ..." directly. A late
-;; (define-key some-mode-map (kbd "C-c x") …) would recreate a local C-c
+;; after this point   always bind them under "M-m ..." directly. A late
+;; (define-key some-mode-map (kbd "C-c x")  ) would recreate a local C-c
 ;; prefix and confuse the remapping in the CUA section.
 
 ;; The two mechanism helpers live up here ON PURPOSE: packages that load
@@ -394,10 +394,10 @@ major-mode and global leader maps."
 #+end_src
 
 ** Sane defaults & UI
-*** UTF-8 überall
+*** UTF-8 �berall
 #+begin_src emacs-lisp
 ;; Auf Windows nutzt Emacs sonst die System-Codepage (z. B. cp1252).
-;; Diese Zeilen erzwingen UTF-8 für Dateien, Terminal, Clipboard, Prozesse.
+;; Diese Zeilen erzwingen UTF-8 f�r Dateien, Terminal, Clipboard, Prozesse.
 (set-language-environment "UTF-8")
 (prefer-coding-system 'utf-8)
 (set-default-coding-systems 'utf-8)
@@ -406,16 +406,16 @@ major-mode and global leader maps."
 (set-selection-coding-system 'utf-8)
 (setq locale-coding-system 'utf-8
       default-process-coding-system '(utf-8-unix . utf-8-unix))
-;; Neue Dateien standardmäßig mit Unix-Zeilenenden und UTF-8 ohne BOM:
+;; Neue Dateien standardm��ig mit Unix-Zeilenenden und UTF-8 ohne BOM:
 (setq-default buffer-file-coding-system 'utf-8-unix)
 ;; Windows-spezifisch:
 ;;   - Dateinamen mit Umlauten korrekt in Modeline/Buffername anzeigen
-;;     → `file-name-coding-system' explizit setzen (DIE wird tatsächlich
+;;       `file-name-coding-system' explizit setzen (DIE wird tats�chlich
 ;;       benutzt; `default-file-name-coding-system' ist nur der Fallback).
 ;;   - `w32-unicode-filenames' weist Emacs an, die Wide-API von Windows
 ;;     zu nutzen statt der ANSI-Codepage. Damit funktionieren auch Pfade
-;;     außerhalb von cp1252 (Kyrillisch, CJK, Emoji, …).
-;;   - `w32-multibyte-process-coding-system' für PowerShell-Aufrufe.
+;;     au�erhalb von cp1252 (Kyrillisch, CJK, Emoji,  ).
+;;   - `w32-multibyte-process-coding-system' f�r PowerShell-Aufrufe.
 (when (eq system-type 'windows-nt)
   (setq w32-unicode-filenames 'utf-8)
   (setq file-name-coding-system 'utf-8)
@@ -471,7 +471,7 @@ major-mode and global leader maps."
     "FiraCode Nerd Font"
     "Hack Nerd Font"
     "Iosevka Nerd Font"))
-(defvar my/font-size 130) ;; 1/10 pt — bump to 140/150 if you want it bigger
+(defvar my/font-size 130) ;; 1/10 pt   bump to 140/150 if you want it bigger
 
 (defun my/set-font ()
   "Pick the first available font from `my/font-candidates'."
@@ -491,10 +491,10 @@ major-mode and global leader maps."
 
 *** Themes: professional dark/light pair with a switcher
 #+begin_src emacs-lisp
-;; Dark:  doom-dark+      — port of VS Code's Dark+ (somber, desaturated)
-;; Light: doom-one-light  — clean, Office-like
+;; Dark:  doom-dark+        port of VS Code's Dark+ (somber, desaturated)
+;; Light: doom-one-light    clean, Office-like
 ;; M-m T toggles between them; the choice persists across restarts.
-;; (doom-gruvbox stays installed — add it to `my/themes' to cycle it too.
+;; (doom-gruvbox stays installed   add it to `my/themes' to cycle it too.
 ;;  Built-in `modus-operandi' is another very professional light option.)
 (defvar my/themes '(doom-dark+ doom-one-light)
   "Themes `my/theme-toggle' cycles through. First entry is the default.")
@@ -525,7 +525,7 @@ major-mode and global leader maps."
       (car my/themes)))
 
 (defun my/apply-saved-theme (&optional frame)
-  "Apply the saved theme — on FRAME if given (for daemon client frames)."
+  "Apply the saved theme   on FRAME if given (for daemon client frames)."
   (condition-case nil
       (let ((theme (my/saved-theme)))
         (if frame
@@ -543,7 +543,7 @@ major-mode and global leader maps."
                  #'my/apply-theme-on-first-gui-frame)))
 
 (use-package doom-themes
-  :demand t   ; :bind would otherwise DEFER loading — without this, the
+  :demand t   ; :bind would otherwise DEFER loading   without this, the
               ; :config below never runs at startup, so NO theme loads
               ; until M-m T is pressed (startup looks unstyled).
   :custom
@@ -578,11 +578,11 @@ major-mode and global leader maps."
           (apply orig args)
         (error (mapcar (lambda (c) (if (stringp c) (list c "" "") c))
                        (car args)))))))
-;; Note: don't enable `nerd-icons-dired' — dirvish already draws icons via
+;; Note: don't enable `nerd-icons-dired'   dirvish already draws icons via
 ;; its `nerd-icons' attribute, and the two together produce duplicates.
 #+end_src
 
-** Which-key — shows keybindings as you type
+** Which-key   shows keybindings as you type
 #+begin_src emacs-lisp
 (use-package which-key
   :config
@@ -652,11 +652,11 @@ major-mode and global leader maps."
      "\\.docx?\\'" "\\.xlsx?\\'" "\\.pptx?\\'" "\\.zip\\'" "\\.7z\\'"
      "\\.exe\\'" "\\.png\\'" "\\.jpe?g\\'" "\\.gif\\'"))
   ;; Files larger than this are previewed as raw text (no org-mode startup,
-  ;; no inline images, no fontification) — keeps big org files instant:
+  ;; no inline images, no fontification)   keeps big org files instant:
   (consult-preview-partial-size 102400)   ;; 100 kB
   (consult-preview-partial-chunk 51200)   ;; show first 50 kB of those
   :config
-  ;; File-opening commands: NO automatic preview while scrolling — preview
+  ;; File-opening commands: NO automatic preview while scrolling   preview
   ;; only on demand with M-. in the minibuffer; the file itself opens on RET.
   ;; (Buffer switching keeps live preview: buffers are already loaded, cheap.)
   (consult-customize
@@ -685,7 +685,7 @@ major-mode and global leader maps."
   :after (embark consult)
   :hook (embark-collect-mode . consult-preview-at-point-mode))
 
-;; Editable search results — the interactive project-replace workflow:
+;; Editable search results   the interactive project-replace workflow:
 ;; M-m f g (ripgrep) -> C-. E (embark-export to a grep buffer)
 ;; -> M-m M-p (make it editable, wgrep) -> edit like normal text,
 ;; multi-cursor works too -> M-m M-c applies all edits to the files.
@@ -723,7 +723,7 @@ major-mode and global leader maps."
 *** Windows-Explorer-style keys in dired (dirvish inherits these)
 #+begin_src emacs-lisp
 ;;   F2          rename inline (wdired: edit names like text, C-s to apply)
-;;   C-S-n       new file — or new directory if the name ends with /
+;;   C-S-n       new file   or new directory if the name ends with /
 ;;   C-c/C-x/C-v copy / cut / paste FILES (Explorer-style file clipboard)
 ;;   C-a         select all (toggle marks)
 ;;   Delete      delete to trash        S-Delete   delete permanently
@@ -764,7 +764,7 @@ Intermediate directories are created as needed."
   (interactive)
   (dired-ranger-copy nil)
   (setq my/dired-cut-pending t)
-  (message "Cut — paste with C-v to move"))
+  (message "Cut   paste with C-v to move"))
 (defun my/dired-paste-files ()
   "Explorer C-v: paste the file clipboard into this directory."
   (interactive)
@@ -775,7 +775,7 @@ Intermediate directories are created as needed."
 
 ;; These keys live in a MINOR-mode map, NOT in dired-mode-map. Binding
 ;; plain C-x/C-c as commands inside dired-mode-map breaks packages that
-;; later define sequences under those prefixes there — dired-x (loaded by
+;; later define sequences under those prefixes there   dired-x (loaded by
 ;; dirvish) binds C-x M-o and would fail to load, taking the icons and
 ;; half of dirvish down with it.
 (defvar my/dired-cua-mode-map
@@ -840,12 +840,12 @@ Intermediate directories are created as needed."
   Areas never end; only superseded subtrees inside them get archived
   (M-m x a) into areas/archive/.")
   (defvar my/org-notes-dir (expand-file-name "notes/" my/org-dir)
-    "Atomic roam notes of every type — the type is a #+filetags entry,
+    "Atomic roam notes of every type   the type is a #+filetags entry,
   not a folder: :concept: Zettel (rewrite freely) and :collection:
-  items (movies, places, … with TODO lifecycles).")
+  items (movies, places,   with TODO lifecycles).")
   (defvar my/org-records-dir (expand-file-name "records/" my/org-dir)
     "ALL typed moment-records: Laborprotokolle, meeting minutes, field
-  reports, audits, … One folder for every record type — the type is a
+  reports, audits,   One folder for every record type   the type is a
   ,#+filetags entry set by the capture template, not a directory. Records
   are written once and never edited after their day; they reference
   projects/areas/tasks by ID link only.")
@@ -864,7 +864,7 @@ Intermediate directories are created as needed."
 
   ;; --- Agenda = every .org under org/, except any archive/ folder ----
   ;; Folders are organizational defaults only; the agenda sees ALL of them
-  ;; (records/, dailies/, notes/, projects/, areas/, …). archive/ folders
+  ;; (records/, dailies/, notes/, projects/, areas/,  ). archive/ folders
   ;; stay out so finished/cancelled/superseded items don't clutter the
   ;; todo views. The list is rebuilt before each `org-agenda' call (advice
   ;; in :config below) so a folder you just created shows up immediately.
@@ -882,8 +882,7 @@ restriction intact.")
 
   (use-package org
     :ensure nil
-    :hook ((org-mode . org-indent-mode)
-           (org-mode . visual-line-mode))
+    :hook ((org-mode . org-indent-mode))
     ;; Global org commands via M-m leader. Mode-local commands need NO bindings
     ;; here: the CUA section mirrors all of org's C-c C-<key> bindings to
     ;; M-m M-<key> automatically (M-m M-t = todo, M-m M-s = schedule,
@@ -894,9 +893,10 @@ restriction intact.")
     :custom
     (org-directory my/org-dir)
     (org-startup-folded 'content)
+    (org-startup-truncated t)
     (org-hide-emphasis-markers t)
     (org-pretty-entities t)
-    (org-ellipsis " ▾")
+    (org-ellipsis "  ")
     (org-src-fontify-natively t)
     (org-src-tab-acts-natively t)
     (org-confirm-babel-evaluate nil)
@@ -905,22 +905,18 @@ restriction intact.")
     ;; --- One Round System: states ---------------------------------------
     ;; Row 1 = actionable items (tasks, tickets, yours or delegated).
     ;; Row 2 = stateful artifacts (projects, decisions, documents, processes).
-    ;; "@" after a key = the state can only be entered WITH a reason; org
-    ;; refuses otherwise and stamps time + author into :LOGBOOK:.
-    ;; "!" = silent timestamp (replaces the old `org-log-done').
-    ;; Note the placement: finishing needs no explanation, but waiting,
-    ;; delegating, pausing, cancelling, superseding and dropping all demand
-    ;; one — exactly the reasons that otherwise evaporate from memory.
+    ;; "!" = silent timestamp into :LOGBOOK: (no prompt).
+    ;; Reasons for state changes are written manually via M-m M-z (org-add-note).
     (org-todo-keywords
-     '((sequence "TODO(t)" "NEXT(n)" "WAIT(w@)" "DLGT(g@)"
-                 "|" "DONE(d!)" "CANCELLED(c@)")
-       (sequence "ACTIVE(a)" "ONHOLD(h@)"
-                 "|" "FINISHED(f!)" "SUPERSEDED(s@)" "DROPPED(x@)")))
+     '((sequence "TODO(t)" "NEXT(n)" "WAIT(w)" "DLGT(g)"
+                 "|" "DONE(d)" "CANCELLED(c)")
+       (sequence "ACTIVE(a)" "ONHOLD(h)"
+                 "|" "FINISHED(f)" "SUPERSEDED(s)" "DROPPED(x)")))
     ;; --- One Round System: the log primitive -----------------------------
     ;; One mechanism for everything: a timestamped, author-stamped, reasoned
     ;; entry in :LOGBOOK: at the moment of change. State changes write it
     ;; automatically; content changes get it manually via M-m M-z
-    ;; (org-add-note). %u stamps the author — keep `user-login-name'
+    ;; (org-add-note). %u stamps the author   keep `user-login-name'
     ;; consistent with your git identity (or setq it in site-local config).
     (org-log-into-drawer t)
     (org-treat-insert-todo-heading-as-state-change t) ;; creation = 1st event
@@ -943,14 +939,14 @@ restriction intact.")
     (org-archive-location "archive/%s::")
     (org-archive-subtree-add-inherited-tags t)
     ;; Refile targets for M-x org-refile and the agenda's refile. (The
-    ;; org-log-refile note applies to those paths; org-roam-refile — on
-    ;; both M-m M-w and M-m C-w, set in :config below — moves to a node
+    ;; org-log-refile note applies to those paths; org-roam-refile   on
+    ;; both M-m M-w and M-m C-w, set in :config below   moves to a node
     ;; without writing a log line. CREATED stamps and git cover origin.)
     (org-refile-targets '((org-agenda-files :maxlevel . 3)))
     (org-refile-use-outline-path 'file)
     (org-outline-path-complete-in-steps nil)
      ;; Agenda = the WHOLE workspace. Every folder under org/ is in the
-     ;; agenda (records/, dailies/, notes/, projects/, areas/, …) — only
+     ;; agenda (records/, dailies/, notes/, projects/, areas/,  )   only
      ;; archive/ folders are skipped (finished/cancelled/superseded items
      ;; don't belong in a todo view). `my/org-agenda-files' (above) builds
      ;; the list; the :config advice rebuilds it before each `org-agenda'
@@ -972,17 +968,57 @@ restriction intact.")
     (advice-add 'org-agenda :before
                 (lambda (&rest _) (my/org-refresh-agenda-files)))
     ;; Refile = MOVE to a node. org-roam-refile replaces org-refile on
-    ;; every key that would invoke it (M-m C-w, C-c C-w): pick any node —
-    ;; project file, area, heading with ID — via roam completion, and the
+    ;; every key that would invoke it (M-m C-w, C-c C-w): pick any node  
+    ;; project file, area, heading with ID   via roam completion, and the
     ;; subtree moves there as a child. Plain org-refile stays reachable
     ;; via M-x org-refile and is what the agenda's refile uses.
     (define-key org-mode-map [remap org-refile] #'org-roam-refile)
     ;; org binds org-refile-copy to C-c M-w, which the leader exposes as
-    ;; M-m M-w — and the C->M mirror leaves it in place (it never
+    ;; M-m M-w   and the C->M mirror leaves it in place (it never
     ;; overwrites an existing M-<k>). Claim that key for the move too, so
     ;; BOTH M-m M-w and M-m C-w roam-refile. (org-refile-copy, which we
     ;; don't use, stays on M-x.)
     (define-key org-mode-map (kbd "C-c M-w") #'org-roam-refile))
+#+end_src
+
+*** Debounced state-change logging
+When cycling through states rapidly, only log the final state after 1.5s idle.
+#+begin_src emacs-lisp
+(defvar my/org-state-log-timer nil
+  "Idle timer for debounced state logging.")
+(defvar my/org-state-log-info nil
+  "Pending state change: (marker from-state to-state).")
+
+(defun my/org-log-state-now ()
+  "Insert the pending state-change log entry."
+  (when-let ((info my/org-state-log-info))
+    (cl-destructuring-bind (marker from to) info
+      (when (buffer-live-p (marker-buffer marker))
+        (with-current-buffer (marker-buffer marker)
+          (save-excursion
+            (goto-char marker)
+            (org-add-log-setup 'state to from 'time))))))
+  (setq my/org-state-log-info nil))
+
+(defun my/org-todo-debounced (orig-fun &optional arg)
+  "Advice for `org-todo' that debounces logging."
+  ;; Cancel any pending log
+  (when my/org-state-log-timer
+    (cancel-timer my/org-state-log-timer)
+    (setq my/org-state-log-timer nil))
+  (let ((from (org-get-todo-state))
+        (marker (point-marker)))
+    ;; Do the state change without logging
+    (let ((org-inhibit-logging t))
+      (funcall orig-fun arg))
+    ;; Queue debounced log
+    (let ((to (org-get-todo-state)))
+      (when (not (equal from to))
+        (setq my/org-state-log-info (list marker from to))
+        (setq my/org-state-log-timer
+              (run-with-idle-timer 5 nil #'my/org-log-state-now))))))
+
+(advice-add 'org-todo :around #'my/org-todo-debounced)
 #+end_src
 
 *** Per-project agenda: agenda for one subfolder / one project file
@@ -1011,7 +1047,7 @@ Lets you look at a single project folder (or even roam) without touching
 (global-set-key (kbd "M-m p f") #'my/org-agenda-this-file)
 #+end_src
 
-*** Capture: typed records (Laborprotokoll, …)
+*** Capture: typed records (Laborprotokoll,  )
 #+begin_src emacs-lisp
 ;; --- Capture targets: every template picks a folder + file under org/ -
 ;; No capture has a hardcoded home. Each template prompts for a
@@ -1051,7 +1087,7 @@ Returns the absolute path; appends .org when the typed name lacks it."
       (expand-file-name name dir))))
 
 (defvar my/org-capture-name nil
-  "Name typed while picking a file-creating target — reused for #+title.")
+  "Name typed while picking a file-creating target   reused for #+title.")
 (defun my/org-capture-title ()
   "Return `my/org-capture-name' for use in %(...) capture expansions."
   (or my/org-capture-name ""))
@@ -1100,7 +1136,7 @@ record taken for the project."
   (setq org-capture-templates
         '(("l" "Laborprotokoll" plain
            (file my/org-capture-labor-file)
-           "#+title: %(my/org-capture-title)\n#+author: M. Winkler \n#+date: %<%Y-%m-%d>\n#+filetags: :labor:\n- Projekt :: %(my/org-project-id-link)\n\n* Aufbau und Messmittel\n%?\n\n* Verfahren\n# (optional – löschen falls nicht benötigt)\n\n* Versuch\n** Durchführung\n\n** Beobachtungen\n\n* Auswertung / Fazit\n"
+           "#+title: %(my/org-capture-title)\n#+author: M. Winkler \n#+date: %<%Y-%m-%d>\n#+filetags: :labor:\n- Projekt :: %(my/org-project-id-link)\n\n* Aufbau und Messmittel\n%?\n\n* Verfahren\n# (optional   l�schen falls nicht ben�tigt)\n\n* Versuch\n** Durchf�hrung\n\n** Beobachtungen\n\n* Auswertung / Fazit\n"
            :unnarrowed t)
           ("p" "Projekt" plain
            (file my/org-capture-project-file)
@@ -1114,7 +1150,7 @@ record taken for the project."
            "* %?\n  %U\n")
           ;; Decisions are ENTITIES (ACTIVE). The project link is prompted
           ;; exactly like for Laborprotokoll/Meetings. Refile later to the
-          ;; project's Decisions heading; overruled → M-m x s, never edit.
+          ;; project's Decisions heading; overruled   M-m x s, never edit.
           ("d" "Decision" entry
            (file my/org-capture-entry-file)
            "* ACTIVE %^{Entscheidung}\n  %U\n  - Projekt :: %(my/org-project-id-link)\n  Kontext: %a\n  %?")
@@ -1126,17 +1162,17 @@ record taken for the project."
            "* %^{Thema}\n  - Teilnehmer :: %^{Teilnehmer}\n  - Projekt :: %(my/org-project-id-link)\n  %?"))))
 #+end_src
 
-** One Round System — lifecycle commands
+** One Round System   lifecycle commands
 The five rituals and where they live:
   1. Capture       M-m c     every template asks which folder/file under org/
   2. State change  M-m M-t   reasons FORCED on WAIT/DLGT/CANCELLED/
                              ONHOLD/SUPERSEDED/DROPPED
-  3. Change note   M-m M-z   org-add-note — the manual "commit message"
+  3. Change note   M-m M-z   org-add-note   the manual "commit message"
                              for content edits (parameter changed, BOM
                              row swapped, protocol step adjusted): write
                              WHAT and WHY; time + author are automatic.
                              Full-text diffs of big documents stay git's
-                             job (M-o g, git log -p) — the note is the
+                             job (M-o g, git log -p)   the note is the
                              searchable semantic layer on top.
   4. Supersede     M-m x s   replaced-by-something-else (decisions,
                              approaches, processes); C-u M-m x s makes
@@ -1149,7 +1185,7 @@ Delegation = ownership + reasoned state change:   M-m x g
 
 #+begin_src emacs-lisp
 ;; Every capture becomes a node. EVERY captured file gets a file-level ID
-;; (idempotent: returns the existing one if present) — the :PROPERTIES:
+;; (idempotent: returns the existing one if present)   the :PROPERTIES:
 ;; drawer at the top makes the file a linkable roam node and lets the
 ;; links it contains (e.g. the record's "Projekt ::" line) register as
 ;; backlinks on their targets. ENTRY captures (todo, decision, meeting)
@@ -1185,7 +1221,7 @@ Delegation = ownership + reasoned state change:   M-m x g
 ;; Manually typed TODO headings (added via M-RET / org-insert-todo-heading
 ;; / S-M-RET) get an ID automatically, so "every todo has an ID" holds
 ;; outside of capture too. Free-typed '* TODO foo' (plain text) is not
-;; covered — use a heading command, or M-x org-id-get-create on it.
+;; covered   use a heading command, or M-x org-id-get-create on it.
 (defun my/org-id-new-todo-heading ()
   "Give a newly inserted TODO heading an ID if it lacks one."
   (ignore-errors
@@ -1196,8 +1232,8 @@ Delegation = ownership + reasoned state change:   M-m x g
 (defun my/org-supersede (&optional copy)
   "Supersede the entry at point with a successor sibling.
 With prefix argument COPY (\\[universal-argument]), the successor starts
-as a full copy of the old subtree — for reworking document-like entities.
-Without it, the successor starts empty with the same title — for
+as a full copy of the old subtree   for reworking document-like entities.
+Without it, the successor starts empty with the same title   for
 decisions and approaches, where the new content is genuinely new.
 Links predecessor and successor in both directions via ID, then marks
 the old entry SUPERSEDED; org asks for the reason at the end (forced)."
@@ -1227,7 +1263,7 @@ the old entry SUPERSEDED; org asks for the reason at the end (forced)."
 
 (defun my/org-delegate (person)
   "Hand the entry at point to PERSON: set OWNER, then enter DLGT.
-The forced note is where the context goes that PERSON will need —
+The forced note is where the context goes that PERSON will need  
 write it for them, not for yourself."
   (interactive "sDelegieren an: ")
   (org-set-property "OWNER" person)
@@ -1256,18 +1292,18 @@ BEFORE this point (e.g. in a small site-local file) if needed.")
         ("u" "Unowned actionables" tags-todo "TODO={TODO\\|NEXT}-OWNER={.}")
         ;; Today as a timeline of clocked intervals + clock report on
         ;; top: the automatically written diary of the day.
-        ("d" "Today — timeline & clocked time" agenda ""
+        ("d" "Today   timeline & clocked time" agenda ""
          ((org-agenda-span 'day)
           (org-agenda-start-with-log-mode '(clock))
           (org-agenda-clockreport-mode t)))))
 #+end_src
 
-*** Clocking — time lands at the task
+*** Clocking   time lands at the task
 
 Clock on the entity, never in the daily: clock lines go into the
 task's =:LOGBOOK:= drawer, where the rest of its history already
 lives. The daily PERSPECTIVE is a view (=M-m a d=), not a storage
-location. =C-u M-m i= selects from recently clocked tasks — two keys
+location. =C-u M-m i= selects from recently clocked tasks   two keys
 to switch work from anywhere. The running clock shows in the modeline
 and survives Emacs restarts.
 
@@ -1305,18 +1341,18 @@ and survives Emacs restarts.
   (org-download-method 'directory)
   (org-download-image-dir (expand-file-name "images" my/org-dir))
   (org-download-heading-lvl nil)
-  ;; Eingefügte Bilder maximal 200 px breit:
+  ;; Eingef�gte Bilder maximal 200 px breit:
   (org-download-image-org-width 200)
   ;; Keine "DOWNLOADED:"-Zeile unter den Links:
   (org-download-annotate-function (lambda (_link) ""))
   :config
-  ;; org-download fügt normalerweise ein:
+  ;; org-download f�gt normalerweise ein:
   ;;   :PROPERTIES:
   ;;   :DOWNLOADED: ...
   ;;   :END:
   ;;   #+DOWNLOADED: ...
   ;;   [[file:...]]
-  ;; Wir wollen NUR den Link (mit optionalem ATTR_ORG für die Breite).
+  ;; Wir wollen NUR den Link (mit optionalem ATTR_ORG f�r die Breite).
   ;; Dazu ersetzen wir `org-download-insert-link' komplett.
   (defun org-download-insert-link (_link filename)
     "Minimal replacement: insert ONLY the image link, no drawer, no DOWNLOADED."
@@ -1325,7 +1361,7 @@ and survives Emacs restarts.
       (insert (format "#+ATTR_ORG: :width %s\n[[file:%s]]\n"
                       (or org-download-image-org-width 200)
                       filename))
-      ;; Einrückung von der aktuellen Zeile übernehmen:
+      ;; Einr�ckung von der aktuellen Zeile �bernehmen:
       (indent-rigidly beg (point) indent)))
 
   ;; Per-OS screenshot/clipboard tool.
@@ -1353,7 +1389,7 @@ and survives Emacs restarts.
 
 *** Open files with external programs from org links
 #+begin_src emacs-lisp
-;; IMPORTANT: do NOT add image extensions here — openwith would intercept
+;; IMPORTANT: do NOT add image extensions here   openwith would intercept
 ;; org's own inline image rendering and shell them out to the OS viewer.
 (use-package openwith
   :config
@@ -1373,7 +1409,7 @@ and survives Emacs restarts.
 (use-package ob-mermaid
   :after org
   :custom
-  ;; npm i -g @mermaid-js/mermaid-cli — then set the path:
+  ;; npm i -g @mermaid-js/mermaid-cli   then set the path:
   (ob-mermaid-cli-path (or (executable-find "mmdc") "mmdc"))
   :config
   (org-babel-do-load-languages
@@ -1385,12 +1421,12 @@ and survives Emacs restarts.
 #+begin_src emacs-lisp
 ;; org-roam-directory is the WHOLE org tree: every heading with an ID is a
 ;; node, so backlinks span projects, areas, records, dailies AND the archive
-;; folders. That is what keeps moment-records safely immutable — a daily
+;; folders. That is what keeps moment-records safely immutable   a daily
 ;; note's link to a task still resolves after the task was archived.
-;; Atomic notes of EVERY type share notes/ — like records/, the type is a
+;; Atomic notes of EVERY type share notes/   like records/, the type is a
 ;; filetag, never a folder:
 ;;   :concept:    timeless "what is X" Zettel (rewrite freely)
-;;   :collection: items with lifecycles (movies, places, …)
+;;   :collection: items with lifecycles (movies, places,  )
 (use-package org-roam
   :init (setq org-roam-v2-ack t)
   :custom
@@ -1443,9 +1479,9 @@ and survives Emacs restarts.
 #+end_src
 
 *** Edna: powerful TODO dependencies / triggers
-Basics and a worked example are in the guide section »Dependencies and
-Gantt charts (org-edna)« above: =:BLOCKER: ids(…)= gates tasks,
-=:TRIGGER: … todo!(NEXT)= advances the chain, =M-m p g= turns it all
+Basics and a worked example are in the guide section �Dependencies and
+Gantt charts (org-edna)� above: =:BLOCKER: ids( )= gates tasks,
+=:TRIGGER:   todo!(NEXT)= advances the chain, =M-m p g= turns it all
 into a Mermaid gantt.
 
 #+begin_src emacs-lisp
@@ -1475,7 +1511,7 @@ into a Mermaid gantt.
 ;; but the built-in subr only accepts 1. Override early so it accepts extras.
 ;; Redefine only when the current definition accepts FEWER than the 3 args
 ;; marginalia passes (newer Emacs versions already accept them natively).
-;; time-date must be loaded first — on an autoload stub, `func-arity' errors:
+;; time-date must be loaded first   on an autoload stub, `func-arity' errors:
 (require 'time-date)
 (let ((max-arity (cdr (func-arity (symbol-function 'seconds-to-string)))))
   (when (and (numberp max-arity) (< max-arity 3))
@@ -1545,7 +1581,7 @@ writes the .mmd source (also usable in a babel block / Marginalia app).
     (org-map-entries
      (lambda ()
        ;; Tasks only: the artifact states (ACTIVE/ONHOLD/FINISHED/
-       ;; SUPERSEDED/DROPPED — decisions, documents, processes) carry no
+       ;; SUPERSEDED/DROPPED   decisions, documents, processes) carry no
        ;; schedule semantics and stay out of the gantt.
        (when (member (org-get-todo-state)
                      '("TODO" "NEXT" "WAIT" "DLGT" "DONE" "CANCELLED"))
@@ -1620,7 +1656,7 @@ also renders <file>.svg and opens it."
 (global-set-key (kbd "M-m p g") #'my/org-gantt-export)
 #+end_src
 
-** gptel — AI chat + editing
+** gptel   AI chat + editing
 #+begin_src emacs-lisp
   ;; (defun my/gptel-api-key ()
   ;;   "Read API key from opencode auth.json."
@@ -1647,7 +1683,7 @@ also renders <file>.svg and opens it."
 #+end_src
 
 ** VS Code / CUA-style editing
-C-c / C-x / C-v / C-z really copy / cut / paste / undo — everywhere,
+C-c / C-x / C-v / C-z really copy / cut / paste / undo   everywhere,
 with whole-line fallback when no region is active (real CUA feel).
 The prefix maps survive under M-m / M-o (aliased near the top of this
 file); `my/remap-leaders' folds each mode's local C-c/C-x prefixes into
@@ -1675,13 +1711,17 @@ the leaders and frees the plain keys for copy/cut.
 (global-set-key (kbd "C-S-z") #'undo-redo)   ;; VS Code: redo
 (global-set-key (kbd "C-y") #'undo-redo)     ;; the other common redo key
 (global-set-key (kbd "C-s") #'save-buffer)
+(global-set-key (kbd "C-+") #'text-scale-increase)
+(global-set-key (kbd "C--") #'text-scale-decrease)
+(global-set-key (kbd "C-_") #'text-scale-decrease)
+(global-set-key (kbd "C-q") #'delete-window)
 #+end_src
 
 *** Browser-style buffer cycling (C-Tab / C-S-Tab)
 #+begin_src emacs-lisp
 ;; Ctrl+Tab opens the same vertico buffer switcher as M-o b (consult-buffer).
 ;; Then Tab / C-Tab cycle the selection down and Shift-Tab / C-S-Tab cycle
-;; it back — those bindings live in the vertico block further down, since
+;; it back   those bindings live in the vertico block further down, since
 ;; they only apply while the vertico list is open. consult previews the
 ;; buffer under the cursor live, so each tap shows that buffer; RET picks,
 ;; C-g aborts. Top of the list is the most-recent buffer (already previewed
@@ -1812,7 +1852,7 @@ copy/cut bindings shine through."
   (define-key wgrep-mode-map (kbd "C-<return>") #'wgrep-finish-edit)
   (define-key wgrep-mode-map (kbd "C-w")        #'wgrep-abort-changes))
 
-;; Org note buffer (state-change reason, M-m M-z add-note, clock-out, …):
+;; Org note buffer (state-change reason, M-m M-z add-note, clock-out,  ):
 ;; it's a plain org-mode buffer with `org-finish-function' set, so without
 ;; this the global CUA keys would mis-fire here (C-s -> save-buffer, C-w ->
 ;; kill-current-buffer). A buffer-local MINOR mode reroutes them to
@@ -1851,7 +1891,7 @@ copy/cut bindings shine through."
             (my/mirror-c-to-m mode-specific-map)
             (my/mirror-c-to-m ctl-x-map)
             ;; Buffers created before init finished (*scratch*, *Messages*)
-            ;; never ran `after-change-major-mode-hook' — remap them too so
+            ;; never ran `after-change-major-mode-hook'   remap them too so
             ;; C-c/C-x copy/cut work there as well:
             (dolist (buf (buffer-list))
               (with-current-buffer buf
@@ -1861,7 +1901,7 @@ copy/cut bindings shine through."
 ;; Shift-arrows select text normally, EXCEPT in org's special spots where
 ;; selecting makes no sense anyway: on a headline S-right/S-left cycles the
 ;; TODO state, on a timestamp S-up/S-down shifts the date. ('always would
-;; disable those org behaviours completely — don't use it.)
+;; disable those org behaviours completely   don't use it.)
 (setq shift-select-mode t
       org-support-shift-select t)
 #+end_src
@@ -1951,7 +1991,7 @@ copy/cut bindings shine through."
 (global-set-key (kbd "<escape>") #'my/keyboard-escape-quit)
 #+end_src
 
-** Eshell — built-in terminal
+** Eshell   built-in terminal
 #+begin_src emacs-lisp
 (use-package eshell
   :ensure nil
@@ -1983,9 +2023,9 @@ copy/cut bindings shine through."
 (global-set-key (kbd "M-m e") #'my/eshell-new)
 #+end_src
 
-** Magit — git interface
+** Magit   git interface
 M-o g opens the status buffer (the classic C-x g). To create a NEW repo:
-M-x magit-init, pick the directory — or just M-o g inside a folder that
+M-x magit-init, pick the directory   or just M-o g inside a folder that
 is not a repo yet; magit then offers to run magit-init for you.
 In the status buffer: ? shows all commands, s stage, c c commit,
 P p push, F p pull. (Requires Git for Windows on PATH.)
@@ -1998,7 +2038,7 @@ P p push, F p pull. (Requires Git for Windows on PATH.)
    #'magit-display-buffer-same-window-except-diff-v1))
 #+end_src
 
-** Start page — shortcut reference
+** Start page   shortcut reference
 Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
 
 #+begin_src emacs-lisp
@@ -2081,7 +2121,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "M-m p g" "Gantt export (Mermaid)")
       (my/start--key "M-m n f" "Roam: find note")
       (my/start--key "M-m n j" "Roam: today's daily")
-      (my/start--key "S-→/←"   "Cycle TODO state (on a heading)")
+      (my/start--key "S- / "   "Cycle TODO state (on a heading)")
       (my/start--key "M-o g"   "Magit (git) status")
       (insert "\n")
 
@@ -2091,8 +2131,8 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "C-d"     "Multi-cursor: next occurrence")
       (my/start--key "C-S-l"   "Multi-cursor: all occurrences")
       (my/start--key "C-/"     "Toggle comment")
-      (my/start--key "M-↑/↓"   "Move line(s)")
-      (my/start--key "M-S-↑/↓" "Duplicate line(s)")
+      (my/start--key "M- / "   "Move line(s)")
+      (my/start--key "M-S- / " "Duplicate line(s)")
       (my/start--key "C-S-k"   "Delete line")
       (my/start--key "Esc"     "Cancel")
       (my/start--key "C-s / C-RET" "Finish capture / commit / src edit")
@@ -2100,14 +2140,14 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (insert "\n")
 
       (my/start--heading "  Appearance:")
-      (my/start--key "M-m T"   "Toggle theme (dark ⇄ light)")
+      (my/start--key "M-m T"   "Toggle theme (dark   light)")
       (insert "\n")
 
       (insert (propertize
-               "   M-m ≙ C-c, M-o ≙ C-x — every mode binding: C-c C-x → M-m M-x\n"
+               "   M-m   C-c, M-o   C-x   every mode binding: C-c C-x   M-m M-x\n"
                'face 'font-lock-comment-face))
       (insert (propertize
-               "   Help is on F1 (F1 k = describe key, F1 f = function, …)\n"
+               "   Help is on F1 (F1 k = describe key, F1 f = function,  )\n"
                'face 'font-lock-comment-face))
       (goto-char (point-min)))
     (my/start-mode)
@@ -2125,9 +2165,9 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
 #+begin_example
 
  Leaders
-   M-m       ≙ C-c  — incl. every mode-local C-c binding, mirrored:
+   M-m         C-c    incl. every mode-local C-c binding, mirrored:
              C-c C-<k> is reachable as M-m M-<k> AND M-m C-<k>
-   M-o       ≙ C-x  — same mechanism (M-o M-s save, M-o M-f find file, …)
+   M-o         C-x    same mechanism (M-o M-s save, M-o M-f find file,  )
 
  Files (M-m f ...)
    M-m f r   recent files          M-m f f   find file
@@ -2145,18 +2185,18 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
              l laborprotokoll, p projekt)
    M-m M-t   org-todo              M-m M-s   org-schedule    (in org-mode,
    M-m M-d   org-deadline          M-m M-c   C-c C-c          all mirrored
-   M-m M-e   export                M-m M-l   insert link      from C-c C-…)
-   M-m M-z   add change note — log WHAT changed and WHY at this entry
-   M-m n ... org-roam (f find, i insert, c capture, j/d dailies, …)
+   M-m M-e   export                M-m M-l   insert link      from C-c C- )
+   M-m M-z   add change note   log WHAT changed and WHY at this entry
+   M-m n ... org-roam (f find, i insert, c capture, j/d dailies,  )
    M-m d ... org-download (s screenshot, y yank, d delete)
    M-m t     org-transclusion
 
- Lifecycle — One Round System (M-m x ...)
+ Lifecycle   One Round System (M-m x ...)
    M-m x s   supersede entry (C-u = successor starts as full copy)
    M-m x g   delegate entry (sets OWNER + DLGT with forced context note)
    M-m x a   archive subtree -> archive/ subfolder next to the file
    Reasons are FORCED when entering WAIT DLGT CANCELLED ONHOLD
-   SUPERSEDED DROPPED — time and author are stamped automatically.
+   SUPERSEDED DROPPED   time and author are stamped automatically.
 
  Clocking (time lands at the task's :LOGBOOK:)
    M-m i     clock in at point (C-u = pick from recent tasks)
