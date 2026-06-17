@@ -1,4 +1,4 @@
-#+TITLE:   Emacs   the One Round System
+#+TITLE:   Emacs Config, CUA-oriented
 #+AUTHOR:  M. Winkler
 #+STARTUP: overview
 
@@ -58,30 +58,32 @@ changes (with reasons /forced/ where they matter), and manually via
 =M-m M-z= for content edits. Delegation, supersession, document
 revisions, and archiving are this primitive at different granularities.
 
-** Folders are organizational defaults, not behavior
+** Switching org directories (M-m O)
 
-Every folder under =org/= is just a folder: it lives in the agenda, and
-capture asks you which one to file into. The folders below exist only as
-handy default targets and as archive homes   they no longer encode
-behavior (agenda membership, mutability). A =#+filetags= entry marks the
-/kind/ of content (=:labor:=, =:meeting:=, =:concept:=,  ); one record
-type or note type is one new template with its own filetag, never a new
-folder.
+Use =M-m O= to switch between org directories (e.g., =~/org/= for private,
+=~/nextcloud/org/= for work). Previously used directories are remembered
+and offered for completion. The current choice persists across restarts.
 
-| Folder     | Default use                                                                     |
-|------------+---------------------------------------------------------------------------------|
-| =inbox.org=  | unsorted front door (just one file you can pick during capture)                 |
+** Folders are suggestions, not requirements
+
+Every folder under your org directory is just a folder: it lives in the
+agenda, and capture asks you which one to file into. Create whatever
+structure suits you. The table below shows a /suggested/ convention  
+nothing is auto-created:
+
+| Folder       | Suggested use                                                                   |
+|--------------+---------------------------------------------------------------------------------|
+| =inbox.org=  | unsorted front door (one file you can pick during capture)                      |
 | =dailies/=   | journal, one file per day; optional; never edited after its day                 |
-| =records/=   | typed records (=:labor:=, =:meeting:=,  ); immutable; link projects by ID           |
-| =projects/=  | one file per project (the default for the =p= capture)                            |
+| =records/=   | typed records (=:labor:=, =:meeting:=,  ); immutable; link projects by ID       |
+| =projects/=  | one file per project (the default for the =p= capture)                          |
 | =areas/=     | machines, process domains, teams                                                |
-| =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places   with TODO lifecycles) |
-| =*/archive/= | every folder gets one; archive/ folders are the only ones NOT in the agenda     |
+| =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places   with TODO states) |
+| =*/archive/= | archive/ folders are the only ones excluded from the agenda                     |
 
-The agenda is =directory-files-recursively= over =org/= minus any
-=archive/= folder, rebuilt before each =M-m a=. Add a folder and it shows
-up; archive one (a subtree via =M-m x a=, or a whole file via =git mv=
-into an =archive/=) and it drops out.
+The agenda scans your org directory recursively (minus =archive/= folders),
+rebuilt before each =M-m a=. Add a folder and it shows up; move something
+into an =archive/= and it drops out.
 
 When a project changes something that belongs to an area (a machine
 parameter, a standard process), the change happens *at the area*  
@@ -881,31 +883,19 @@ Intermediate directories are created as needed."
   ;; Load saved org directory on startup
   (defvar my/org-dir (car (my/org-dirs-load)))
 
+  ;; Suggested subdirectories (not auto-created   make them yourself if wanted)
   (defvar my/org-projects-dir (expand-file-name "projects/" my/org-dir)
-    "One org file per project. Agenda source, org-edna deps, gantt export.
-  Projects END: a finished/cancelled project file moves WHOLE into
-  projects/archive/ (git mv) and disappears from the agenda.")
+    "Suggested: one org file per project.")
   (defvar my/org-areas-dir (expand-file-name "areas/" my/org-dir)
-    "One org file per ongoing thing: machine, process domain, team.
-  Areas never end; only superseded subtrees inside them get archived
-  (M-m x a) into areas/archive/.")
+    "Suggested: ongoing domains (machines, teams, processes).")
   (defvar my/org-notes-dir (expand-file-name "notes/" my/org-dir)
-    "Atomic roam notes of every type   the type is a #+filetags entry,
-  not a folder: :concept: Zettel (rewrite freely) and :collection:
-  items (movies, places,   with TODO lifecycles).")
+    "Suggested: atomic roam notes (:concept:, :collection:, etc).")
   (defvar my/org-records-dir (expand-file-name "records/" my/org-dir)
-    "ALL typed moment-records: Laborprotokolle, meeting minutes, field
-  reports, audits,   One folder for every record type   the type is a
-  ,#+filetags entry set by the capture template, not a directory. Records
-  are written once and never edited after their day; they reference
-  projects/areas/tasks by ID link only.")
+    "Suggested: immutable moment-records (:labor:, :meeting:, etc).")
 
   ;; --- Agenda = every .org under org/, except any archive/ folder ----
-  ;; Folders are organizational defaults only; the agenda sees ALL of them
-  ;; (records/, dailies/, notes/, projects/, areas/,  ). archive/ folders
-  ;; stay out so finished/cancelled/superseded items don't clutter the
-  ;; todo views. The list is rebuilt before each `org-agenda' call (advice
-  ;; in :config below) so a folder you just created shows up immediately.
+  ;; The agenda scans recursively; archive/ folders are excluded.
+  ;; Rebuilt before each `org-agenda' so new folders appear immediately.
   (defun my/org-agenda-files ()
     "Return every .org under `org-directory' except files inside an archive/."
     (directory-files-recursively
@@ -983,12 +973,7 @@ restriction intact.")
     (org-refile-targets '((org-agenda-files :maxlevel . 3)))
     (org-refile-use-outline-path 'file)
     (org-outline-path-complete-in-steps nil)
-     ;; Agenda = the WHOLE workspace. Every folder under org/ is in the
-     ;; agenda (records/, dailies/, notes/, projects/, areas/,  )   only
-     ;; archive/ folders are skipped (finished/cancelled/superseded items
-     ;; don't belong in a todo view). `my/org-agenda-files' (above) builds
-     ;; the list; the :config advice rebuilds it before each `org-agenda'
-     ;; so newly added folders appear without restarting.
+     ;; Agenda = entire org directory (recursive), minus archive/ folders.
      (org-agenda-files (my/org-agenda-files))
     :config
     ;; Stable IDs: inserting a link interactively creates an ID at the
