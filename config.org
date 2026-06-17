@@ -1812,6 +1812,37 @@ copy/cut bindings shine through."
   (define-key wgrep-mode-map (kbd "C-<return>") #'wgrep-finish-edit)
   (define-key wgrep-mode-map (kbd "C-w")        #'wgrep-abort-changes))
 
+;; Org note buffer (state-change reason, M-m M-z add-note, clock-out, …):
+;; it's a plain org-mode buffer with `org-finish-function' set, so without
+;; this the global CUA keys would mis-fire here (C-s -> save-buffer, C-w ->
+;; kill-current-buffer). A buffer-local MINOR mode reroutes them to
+;; finalize/abort, matching capture/src/commit/wgrep above. (A minor mode,
+;; not `local-set-key', so we don't touch the shared `org-mode-map'.)
+(defvar my/org-note-cua-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-s")        #'org-ctrl-c-ctrl-c) ; finalize note
+    (define-key map (kbd "C-<return>") #'org-ctrl-c-ctrl-c)
+    (define-key map (kbd "C-w")        #'org-kill-note-or-show-branches) ; abort
+    map)
+  "CUA finalize/abort keys for the transient *Org Note* buffer.")
+
+(define-minor-mode my/org-note-cua-mode
+  "CUA finalize/abort keys for the *Org Note* buffer."
+  :keymap my/org-note-cua-map)
+
+(defun my/org-note-cua-enable ()
+  "Enable `my/org-note-cua-mode' and rewrite the hint line to match."
+  (my/org-note-cua-mode 1)
+  (save-excursion
+    (goto-char (point-min))
+    (when (re-search-forward
+           "# Finish with C-c C-c, or cancel with C-c C-k\\." nil t)
+      (replace-match
+       "# Finish with C-s (or C-c C-c), or cancel with C-w."))))
+
+(with-eval-after-load 'org
+  (add-hook 'org-log-buffer-setup-hook #'my/org-note-cua-enable))
+
 (add-hook 'emacs-startup-hook
           (lambda ()
             ;; Mirror the global prefix maps once everything is loaded:
