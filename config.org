@@ -22,42 +22,6 @@ under =C-c= in this file   always bind under =M-m= directly.
 
 * The One Round System
 
-** The problem it solves
-
-Plain-text project management conflates two kinds of information.
-Records of moments   a daily note, a protocol, minutes   should never
-be edited after the fact. Current truth   the state of a task, the
-revision of a parameter, whether a project is alive   must evolve.
-When both live in the same files, every change either corrupts a
-record or goes unrecorded; reasons evaporate; deleted dead ends take
-their lessons with them. The system below resolves this with one
-mechanism that works identically for tasks, tickets, projects,
-decisions, parameters, documents, and processes.
-
-** The model   three shapes, one primitive
-
-Every piece of information has one of three shapes, and the shape  
-never the content type   determines its handling:
-
-- A *record of a moment* (daily note, Laborprotokoll, minutes): true
-  forever as written, never edited after its day, references
-  everything else only by link.
-- An *entity* (task, project, decision, parameter, document, process):
-  has current truth that changes, plus a history of changes   with
-  reasons   that must stay attached. Entities are born, change state,
-  and die (finished, cancelled, or superseded), at which point they
-  leave the workspace but not the record.
-- An *understanding* (a concept note): your current best explanation,
-  rewritten freely whenever you understand better; git keeps its
-  history as a courtesy.
-
-Everything rests on one primitive: *a timestamped, author-stamped,
-reasoned log entry, attached to the thing that changed, written at the
-moment of change.* Org provides it twice   automatically on state
-changes (with reasons /forced/ where they matter), and manually via
-=M-m M-z= for content edits. Delegation, supersession, document
-revisions, and archiving are this primitive at different granularities.
-
 ** Switching org directories (M-m O)
 
 Use =M-m O= to switch between org directories (e.g., =~/org/= for private,
@@ -97,7 +61,7 @@ has no other home. Because task creation and every state change are
 already logged mechanically (=CREATED= stamps, =:LOGBOOK:= entries),
 dailies carry *zero bookkeeping duty*   never write "opened task X"
 into one. What remains for them is narrative: observations too small
-for a Laborprotokoll, context ("Lieferant angerufen, M�ller meldet
+for a Laborprotokoll, context ("Lieferant angerufen, M?ller meldet
 sich Montag"), half-thoughts, the informal counterpart to the formal
 records. Their use case is answering, years later, "what was going on
 around day X   what did I know, what was I trying?".
@@ -106,17 +70,17 @@ If you don't journal, skip dailies entirely: nothing else in the
 system depends on them. They exist as capacity (=M-m n j=), not as
 obligation.
 
-** The five rituals
+** The rituals
 
-Everything you will ever do in this system is one of five moves:
+Everything you will ever do in this system is one of these moves:
 
-1. *Capture*   =M-m c= (=t= todo, =n= note, =d= decision, =m= meeting,
-   =l= Laborprotokoll, =p= project). Every template prompts for the
+1. *Capture*   =M-m c= (=m= meeting,
+   =l= Laborprotokoll). Every template prompts for the
    folder (and file) under =org/= to file into; the typed name becomes
    the =#+title=. ID and =CREATED= stamp are automatic   every captured
    file gets a file-level ID, every captured/todo heading gets a heading
    ID, so every captured thing is a linkable roam node from birth. You
-   never create entities by typing raw headings mid-thought   and that is
+   never create entities by typing raw headings mid-thought and that is
    what keeps moment-records safe: they only ever contain /links/ to
    entities, never the entities themselves.
 2. *State change*   =M-m M-t=. Where a reason matters (WAIT, DLGT,
@@ -129,7 +93,7 @@ Everything you will ever do in this system is one of five moves:
    row, a protocol step   gets a note saying WHAT changed and WHY.
    For document revisions, bump a =:REV:= property in the same breath
    and write the note in change-notice style: "Rev C: Pos 7 NBR  
-   PEEK   NBR-Dichtungen versagen �ber 140 �C." The note is the
+   PEEK   NBR-Dichtungen versagen ?ber 140 ?C." The note is the
    searchable semantic layer; =git log -p= on the file is the
    full-text diff layer. Between the two, even a 400-row BOM has
    complete browsable history with zero snapshots in the workspace.
@@ -185,7 +149,7 @@ A typical project chain:
 
 #+begin_src org
 ,* Aufgaben
-,** TODO Pr�fstand aufbauen
+,** TODO Pr?fstand aufbauen
 SCHEDULED: <2026-06-15 Mo> DEADLINE: <2026-06-19 Fr>
 :PROPERTIES:
 :ID:      aaa-1111- 
@@ -259,7 +223,7 @@ them.
 
 Two conventions no tool can enforce, agree on them explicitly: reasons
 are written *for the stranger* (the colleague three years from now who
-finds the node via search   "Lieferantenproblem" helps nobody; "M�ller
+finds the node via search   "Lieferantenproblem" helps nobody; "M?ller
 GmbH hat die 12mm-NBR-Variante eingestellt, keine Zweitquelle unter
 5k MOQ" is gold), and the daily inbox review actually happens   an
 inbox that silts up becomes a second workspace, and the system dies
@@ -267,24 +231,22 @@ of it.
 
 ** When to do what
 
-| Situation                                        | Do this                                                                      |
-|--------------------------------------------------+------------------------------------------------------------------------------|
-| Anything incoming   idea, request, action needed | =M-m c t=; pick the folder/file; shape it at the daily review                  |
-| What happened today, context, half-thoughts      | =M-m n j= daily note; link entities; never edit after today                  |
-| Experiment                                       | =M-m c l=   typed record in =records/=, project linked by ID                 |
-| Meeting                                          | =M-m c m=; decisions made there get =M-m c d= and are linked from the minutes |
-| New task                                         | capture, then refile (=M-m M-w=   picks any node via roam) into the project  |
-| Hand a task to a colleague                       | =M-m x g=   OWNER set, context note forced; appears in their My-work view    |
-| Task no longer relevant                          | =M-m M-t c=   reason forced; =M-m x a= to archive                            |
-| Machine parameter changes                        | edit the value in the area file; =M-m M-z=: alt   neu, warum, link the cause |
-| Design decision made                             | =M-m c d=   refile to the project's Decisions                                |
-| Decision overruled / approach replaced           | =M-m x s= on the old node; reason forced; write the successor                |
-| Spec/BOM/protocol revision (same artifact)       | edit in place, bump =:REV:=, =M-m M-z= in change-notice style; =git log -p= has the diff |
-| Document replaced by a different approach        | =C-u M-m x s= (successor = full copy), rework it                             |
-| Project finished or cancelled                    | mark the heading (reason if cancelled); =git mv= to =projects/archive/=      |
-| Learned something worth keeping                  | =M-m n c=, template =c=   concept note in =notes/=; rewrite freely forever   |
-| Movie / place / item to track                    | =M-m n c=, template =k=   collection item in =notes/=                        |
-| "Didn't we already try this once?"               | =M-m f g= from =~/org=   archives included; read the logbook you find        |
+| Situation                                   | Do this                                                                            |
+|---------------------------------------------+------------------------------------------------------------------------------------|
+| What happened today, context, half-thoughts | =M-m n j= daily note; link entities; never edit after today                          |
+| Experiment                                  | =M-m c l=   typed record in =records/=, project linked by ID                           |
+| Meeting                                     | =M-m c m=                                                                            |
+| New task                                    | capture, then refile (=M-m M-w=   picks any node via roam) into the project          |
+| Hand a task to a colleague                  | =M-m x g=   OWNER set, context note forced; appears in their My-work view            |
+| Task no longer relevant                     | =M-m M-t c=   reason forced; =M-m x a= to archive                                      |
+| Machine parameter changes                   | edit the value in the area file; =M-m M-z=: alt   neu, warum, link the cause         |
+| Decision overruled / approach replaced      | =M-m x s= on the old node; reason forced; write the successor                        |
+| Spec/BOM/protocol revision (same artifact)  | edit in place, bump =:REV:=, =M-m M-z= in change-notice style; =git log -p= has the diff |
+| Document replaced by a different approach   | =C-u M-m x s= (successor = full copy), rework it                                     |
+| Project finished or cancelled               | mark the heading (reason if cancelled); =git mv= to =projects/archive/=                |
+| Learned something worth keeping             | =M-m n c=, template =c=   concept note in =notes/=; rewrite freely forever               |
+| Movie / place / item to track               | =M-m n c=, template =k=   collection item in =notes/=                                    |
+| "Didn't we already try this once?"          | =M-m f g= from =~/org=   archives included; read the logbook you find                  |
 
 ** The loop
 
@@ -396,10 +358,10 @@ major-mode and global leader maps."
 #+end_src
 
 ** Sane defaults & UI
-*** UTF-8 �berall
+*** UTF-8 ?berall
 #+begin_src emacs-lisp
 ;; Auf Windows nutzt Emacs sonst die System-Codepage (z. B. cp1252).
-;; Diese Zeilen erzwingen UTF-8 f�r Dateien, Terminal, Clipboard, Prozesse.
+;; Diese Zeilen erzwingen UTF-8 f?r Dateien, Terminal, Clipboard, Prozesse.
 (set-language-environment "UTF-8")
 (prefer-coding-system 'utf-8)
 (set-default-coding-systems 'utf-8)
@@ -408,16 +370,16 @@ major-mode and global leader maps."
 (set-selection-coding-system 'utf-8)
 (setq locale-coding-system 'utf-8
       default-process-coding-system '(utf-8-unix . utf-8-unix))
-;; Neue Dateien standardm��ig mit Unix-Zeilenenden und UTF-8 ohne BOM:
+;; Neue Dateien standardm??ig mit Unix-Zeilenenden und UTF-8 ohne BOM:
 (setq-default buffer-file-coding-system 'utf-8-unix)
 ;; Windows-spezifisch:
 ;;   - Dateinamen mit Umlauten korrekt in Modeline/Buffername anzeigen
-;;       `file-name-coding-system' explizit setzen (DIE wird tats�chlich
+;;       `file-name-coding-system' explizit setzen (DIE wird tats?chlich
 ;;       benutzt; `default-file-name-coding-system' ist nur der Fallback).
 ;;   - `w32-unicode-filenames' weist Emacs an, die Wide-API von Windows
 ;;     zu nutzen statt der ANSI-Codepage. Damit funktionieren auch Pfade
-;;     au�erhalb von cp1252 (Kyrillisch, CJK, Emoji,  ).
-;;   - `w32-multibyte-process-coding-system' f�r PowerShell-Aufrufe.
+;;     au?erhalb von cp1252 (Kyrillisch, CJK, Emoji,  ).
+;;   - `w32-multibyte-process-coding-system' f?r PowerShell-Aufrufe.
 (when (eq system-type 'windows-nt)
   (setq w32-unicode-filenames 'utf-8)
   (setq file-name-coding-system 'utf-8)
@@ -910,7 +872,10 @@ restriction intact.")
 
   (use-package org
     :ensure nil
-    :hook ((org-mode . org-indent-mode))
+    :hook ((org-mode . org-indent-mode)
+           ;; keep table columns aligned live while you type (debounced,
+           ;; cursor-preserving — see Live table alignment below)
+           (org-mode . my/org-realign-tables-on-edit))
     ;; Global org commands via M-m leader. Mode-local commands need NO bindings
     ;; here: the CUA section mirrors all of org's C-c C-<key> bindings to
     ;; M-m M-<key> automatically (M-m M-t = todo, M-m M-s = schedule,
@@ -1063,6 +1028,146 @@ When cycling through states rapidly, only log the final state after 1.5s idle.
 (advice-add 'org-todo :around #'my/org-todo-debounced)
 #+end_src
 
+*** Live table alignment while typing
+Org realigns a table only on =TAB= / =C-c C-c=. This realigns the
+current table after each edit so columns stay lined up live. Two
+subtleties make it safe: it is debounced onto a short idle timer so it
+never fights fast typing, and it restores the cursor by =(row, column,
+offset-within-field)= rather than by buffer position — because
+=org-table-align= deletes and reinserts the whole table, a saved marker
+would collapse to the table's top (that was the "cursor jumps to a new
+line" bug). The offset is measured from the field's content start, so
+the right-padding that alignment adds never drags the cursor along.
+
+#+begin_src emacs-lisp
+(defvar-local my/org-table-align-timer nil)
+
+(defun my/org-table--field-offset ()
+  "Chars from the current field's content start to point (>= 0)."
+  (save-excursion
+    (let ((p (point)))
+      (skip-chars-backward "^|")   ;; back to just after the field's |
+      (skip-chars-forward " ")     ;; forward to first content char
+      (max 0 (- p (point))))))
+
+(defun my/org-realign-current-table ()
+  "Realign the table at point, keeping the cursor in the same field/spot."
+  (setq my/org-table-align-timer nil)
+  (when (and (derived-mode-p 'org-mode) (org-at-table-p))
+    (let ((line   (line-number-at-pos))         ;; align never adds/removes rows
+          (col    (org-table-current-column))
+          (offset (my/org-table--field-offset))
+          (inhibit-message t))
+      (ignore-errors
+        (org-table-align)
+        (goto-char (point-min))
+        (forward-line (1- line))
+        (org-table-goto-column col)
+        (skip-chars-forward " ")                ;; to content start
+        (let ((field-end (save-excursion (skip-chars-forward "^|") (point))))
+          (goto-char (min field-end (+ (point) offset))))))))
+
+(defun my/org-table-align-maybe (&rest _)
+  "Queue a debounced realign when point is inside a table."
+  (when (and (derived-mode-p 'org-mode) (org-at-table-p))
+    (when (timerp my/org-table-align-timer)
+      (cancel-timer my/org-table-align-timer))
+    (setq my/org-table-align-timer
+          (run-with-idle-timer 0.5 nil #'my/org-realign-current-table))))
+
+(defun my/org-realign-tables-on-edit ()
+  "Enable live, cursor-preserving table realignment in this buffer."
+  (add-hook 'post-self-insert-hook #'my/org-table-align-maybe nil t))
+#+end_src
+
+*** New .org files get #+title and #+date automatically
+Visiting a brand-new empty =.org= file under =org-directory= inserts a
+title (from the file name: dashes/underscores → spaces, capitalised; a
+roam-style =20260612…-= timestamp prefix is stripped) plus the creation
+date. It only touches genuinely empty files and skips capture/roam
+buffers (which write their own headers), so existing notes are never
+disturbed. Capture is detected via a flag bound around the capture
+commands, which stays set through the whole setup.
+
+#+begin_src emacs-lisp
+(defvar my/in-org-capture nil
+  "Non-nil while an org capture is in progress, so my/org-new-file-header
+knows to skip capture-created files (they write their own headers).")
+(defun my/org-capture-wrap (orig &rest args)
+  "Bind `my/in-org-capture' around a capture command."
+  (let ((my/in-org-capture t))
+    (apply orig args)))
+(require 'org-capture nil t)
+(dolist (fn '(org-capture org-roam-capture org-roam-dailies-capture-today))
+  (when (fboundp fn)
+    (advice-add fn :around #'my/org-capture-wrap)))
+
+(defun my/org-new-file-header ()
+  "Insert #+title and #+date into a fresh empty .org file.
+Skips files created during a capture (which write their own headers),
+detected via the `my/in-org-capture' flag bound around capture commands."
+  (when (and buffer-file-name
+             (string-suffix-p ".org" buffer-file-name)
+             (not my/in-org-capture)
+             (file-in-directory-p buffer-file-name (expand-file-name my/org-dir))
+             (zerop (buffer-size)))
+    (let* ((base  (file-name-base buffer-file-name))
+           (clean (replace-regexp-in-string "\\`[0-9]\\{14\\}-" "" base))
+           (title (capitalize (replace-regexp-in-string "[-_]+" " " clean))))
+      (insert (format "#+title: %s\n#+date: %s\n\n"
+                      title (format-time-string "[%Y-%m-%d %a]")))
+      (goto-char (point-max)))))
+(add-hook 'org-mode-hook #'my/org-new-file-header)
+#+end_src
+
+*** Desktop reminders for due tasks
+A timer scans the agenda 60 s after startup and every 30 min after,
+firing one desktop notification per open task whose =DEADLINE= is within
+24 h or already overdue. A session hash-table means each task is
+reminded only once. =M-m R= scans on demand.
+
+#+begin_src emacs-lisp
+(use-package alert
+  :custom
+  (alert-default-style (cond ((eq system-type 'windows-nt) 'toaster)
+                             ((eq system-type 'darwin)      'osx-notifier)
+                             (t                             'libnotify))))
+
+(defvar my/org-notified-deadlines (make-hash-table :test 'equal)
+  "Tasks already notified this session, so we remind once.")
+
+(defun my/org-deadline-reminders ()
+  "Notify about tasks due within 24h or overdue (once each per session)."
+  (interactive)
+  (require 'alert)
+  (let ((now (current-time)))
+    (dolist (file (org-agenda-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-map-entries
+           (lambda ()
+             (let ((dl    (org-entry-get nil "DEADLINE"))
+                   (state (org-get-todo-state)))
+               (when (and dl (member state '("TODO" "NEXT" "WAIT" "DLGT")))
+                 (let* ((due  (org-time-string-to-time dl))
+                        (secs (float-time (time-subtract due now)))
+                        (key  (or (org-id-get)
+                                  (concat file "::" (org-get-heading t t t t)))))
+                   (when (and (< secs 86400)
+                              (not (gethash key my/org-notified-deadlines)))
+                     (puthash key t my/org-notified-deadlines)
+                     (alert (format "%s\n%s"
+                                    (org-get-heading t t t t)
+                                    (if (< secs 0) "OVERDUE"
+                                      (format "due in %d h" (ceiling (/ secs 3600.0)))))
+                            :title "Org deadline"
+                            :severity (if (< secs 0) 'high 'normal)))))))
+           t 'file))))))
+
+(run-with-timer 60 (* 30 60) #'my/org-deadline-reminders)
+(global-set-key (kbd "M-m R") #'my/org-deadline-reminders)
+#+end_src
+
 *** Per-project agenda: agenda for one subfolder / one project file
 #+begin_src emacs-lisp
 (defun my/org-agenda-subdir (dir)
@@ -1094,8 +1199,8 @@ Lets you look at a single project folder (or even roam) without touching
 ;; --- Capture targets: every template picks a folder + file under org/ -
 ;; No capture has a hardcoded home. Each template prompts for a
 ;; subdirectory of org/ (archive/ excluded) and a file inside it, so where
-;; something lands is decided at capture time. The name you type (Projekt,
-;; Versuchsbezeichnung) is reused as the #+title via `my/org-capture-name'.
+;; something lands is decided at capture time. The name you type
+;; (Versuchsbezeichnung) is reused as the #+title via `my/org-capture-name'.
 
 (defun my/org-slug (s)
   "Turn S into a path-safe lowercase slug (Umlaute & Unicode bleiben)."
@@ -1117,32 +1222,11 @@ Includes org/ itself. DEFAULT (a dir under org/) is offered as the default."
     (expand-file-name
      (completing-read "Verzeichnis: " dirs nil nil nil nil def))))
 
-(defun my/org-pick-file-in (dir)
-  "Pick an existing .org file in DIR, or type a new name to create one.
-Returns the absolute path; appends .org when the typed name lacks it."
-  (let* ((existing (mapcar #'file-name-nondirectory
-                           (directory-files dir nil "\\.org\\'")))
-         (choice (completing-read "Datei (neu = eintippen): " existing nil nil)))
-    (when (or (null choice) (string-empty-p choice))
-      (user-error "Kein Dateiname"))
-    (let ((name (if (string-suffix-p ".org" choice) choice (concat choice ".org"))))
-      (expand-file-name name dir))))
-
 (defvar my/org-capture-name nil
   "Name typed while picking a file-creating target   reused for #+title.")
 (defun my/org-capture-title ()
   "Return `my/org-capture-name' for use in %(...) capture expansions."
   (or my/org-capture-name ""))
-
-(defun my/org-capture-entry-file ()
-  "Prompt for a dir + file under org/; return its path (entry captures)."
-  (my/org-pick-file-in (my/org-pick-dir my/org-dir)))
-
-(defun my/org-capture-project-file ()
-  "Prompt for dir + Projektname; return path. Name stashed for #+title."
-  (setq my/org-capture-name (read-string "Projektname: "))
-  (expand-file-name (concat (my/org-slug my/org-capture-name) ".org")
-                    (my/org-pick-dir my/org-projects-dir)))
 
 (defun my/org-capture-labor-file ()
   "Prompt for dir + Versuchsbezeichnung; return dated path. Name -> #+title."
@@ -1153,8 +1237,12 @@ Returns the absolute path; appends .org when the typed name lacks it."
    (my/org-pick-dir my/org-records-dir)))
 
 (defun my/org-capture-meeting-file ()
-  "Prompt for dir + file under org/; return path (meeting datetree target)."
-  (my/org-pick-file-in (my/org-pick-dir my/org-records-dir)))
+  "Prompt for dir + Meetingname; return dated path. Name -> #+title."
+  (setq my/org-capture-name (read-string "Meetingname: "))
+  (expand-file-name
+   (concat (format-time-string "%Y%m%d") "_"
+           (my/org-slug my/org-capture-name) ".org")
+   (my/org-pick-dir)))
 
 (defun my/org-project-id-link ()
   "Prompt for a project file anywhere under org/ (archive/ excluded) and
@@ -1178,30 +1266,14 @@ record taken for the project."
   (setq org-capture-templates
         '(("l" "Laborprotokoll" plain
            (file my/org-capture-labor-file)
-           "#+title: %(my/org-capture-title)\n#+author: M. Winkler \n#+date: %<%Y-%m-%d>\n#+filetags: :labor:\n- Projekt :: %(my/org-project-id-link)\n\n* Aufbau und Messmittel\n%?\n\n* Verfahren\n# (optional   l�schen falls nicht ben�tigt)\n\n* Versuch\n** Durchf�hrung\n\n** Beobachtungen\n\n* Auswertung / Fazit\n"
+           "#+title: %(my/org-capture-title)\n#+author: M. Winkler \n#+date: %<%Y-%m-%d>\n#+filetags: :labor:\n- Projekt :: %(my/org-project-id-link)\n\n* Aufbau und Messmittel\n%?\n\n* Verfahren\n# (optional   l?schen falls nicht ben?tigt)\n\n* Versuch\n** Durchf?hrung\n\n** Beobachtungen\n\n* Auswertung / Fazit\n"
            :unnarrowed t)
-          ("p" "Projekt" plain
-           (file my/org-capture-project-file)
-           "#+title: %(my/org-capture-title)\n#+date: %<%Y-%m-%d>\n\n* Ziel\n%?\n\n* Aufgaben\n** TODO \n"
-           :unnarrowed t)
-          ("t" "Todo" entry
-           (file my/org-capture-entry-file)
-           "* TODO %?\n  %U\n")
-          ("n" "Note" entry
-           (file my/org-capture-entry-file)
-           "* %?\n  %U\n")
-          ;; Decisions are ENTITIES (ACTIVE). The project link is prompted
-          ;; exactly like for Laborprotokoll/Meetings. Refile later to the
-          ;; project's Decisions heading; overruled   M-m x s, never edit.
-          ("d" "Decision" entry
-           (file my/org-capture-entry-file)
-           "* ACTIVE %^{Entscheidung}\n  %U\n  - Projekt :: %(my/org-project-id-link)\n  Kontext: %a\n  %?")
-          ;; Meetings: a datetree of minutes in a file YOU pick under org/,
-          ;; written once, never edited later. Decisions made in the meeting
-          ;; get their own "d" capture and are linked here.
-          ("m" "Meeting" entry
-           (file+olp+datetree my/org-capture-meeting-file)
-           "* %^{Thema}\n  - Teilnehmer :: %^{Teilnehmer}\n  - Projekt :: %(my/org-project-id-link)\n  %?"))))
+          ;; Meetings: one file per meeting. Pick folder + meeting name;
+          ;; name -> #+title and dated file name. Teilnehmer/Projekt blank.
+          ("m" "Meeting" plain
+           (file my/org-capture-meeting-file)
+           "#+title: %(my/org-capture-title)\n#+date: %<%Y-%m-%d>\n#+filetags: :meeting:\n- Teilnehmer :: \n- Projekt :: \n\n%?"
+           :unnarrowed t))))
 #+end_src
 
 ** One Round System   lifecycle commands
@@ -1230,9 +1302,9 @@ Delegation = ownership + reasoned state change:   M-m x g
 ;; (idempotent: returns the existing one if present)   the :PROPERTIES:
 ;; drawer at the top makes the file a linkable roam node and lets the
 ;; links it contains (e.g. the record's "Projekt ::" line) register as
-;; backlinks on their targets. ENTRY captures (todo, decision, meeting)
+;; backlinks on their targets. ENTRY captures (meeting)
 ;; additionally get ID + CREATED on the heading; PLAIN file captures
-;; (Projekt, Laborprotokoll) also ID every TODO heading that came in via
+;; (Laborprotokoll) also ID every TODO heading that came in via
 ;; the template. org-roam's own captures are skipped: roam manages those
 ;; IDs itself, and dailies would drown in property drawers.
 (defun my/org-capture-stamp ()
@@ -1383,18 +1455,18 @@ and survives Emacs restarts.
   (org-download-method 'directory)
   (org-download-image-dir (expand-file-name "images" my/org-dir))
   (org-download-heading-lvl nil)
-  ;; Eingef�gte Bilder maximal 200 px breit:
+  ;; Eingef?gte Bilder maximal 200 px breit:
   (org-download-image-org-width 200)
   ;; Keine "DOWNLOADED:"-Zeile unter den Links:
   (org-download-annotate-function (lambda (_link) ""))
   :config
-  ;; org-download f�gt normalerweise ein:
+  ;; org-download f?gt normalerweise ein:
   ;;   :PROPERTIES:
   ;;   :DOWNLOADED: ...
   ;;   :END:
   ;;   #+DOWNLOADED: ...
   ;;   [[file:...]]
-  ;; Wir wollen NUR den Link (mit optionalem ATTR_ORG f�r die Breite).
+  ;; Wir wollen NUR den Link (mit optionalem ATTR_ORG f?r die Breite).
   ;; Dazu ersetzen wir `org-download-insert-link' komplett.
   (defun org-download-insert-link (_link filename)
     "Minimal replacement: insert ONLY the image link, no drawer, no DOWNLOADED."
@@ -1403,7 +1475,7 @@ and survives Emacs restarts.
       (insert (format "#+ATTR_ORG: :width %s\n[[file:%s]]\n"
                       (or org-download-image-org-width 200)
                       filename))
-      ;; Einr�ckung von der aktuellen Zeile �bernehmen:
+      ;; Einr?ckung von der aktuellen Zeile ?bernehmen:
       (indent-rigidly beg (point) indent)))
 
   ;; Per-OS screenshot/clipboard tool.
@@ -1490,6 +1562,9 @@ and survives Emacs restarts.
   :bind (("M-m n l" . org-roam-buffer-toggle)
          ("M-m n f" . org-roam-node-find)
          ("M-m n i" . org-roam-node-insert)
+         ;; C-k inserts a node link (find-or-create) — org buffers only,
+         ;; so plain C-k = kill-line everywhere else.
+         (:map org-mode-map ("C-k" . org-roam-node-insert))
          ("M-m n c" . org-roam-capture)
          ("M-m n t" . org-roam-tag-add)
          ("M-m n j" . org-roam-dailies-capture-today)
@@ -1521,8 +1596,8 @@ and survives Emacs restarts.
 #+end_src
 
 *** Edna: powerful TODO dependencies / triggers
-Basics and a worked example are in the guide section �Dependencies and
-Gantt charts (org-edna)� above: =:BLOCKER: ids( )= gates tasks,
+Basics and a worked example are in the guide section ?Dependencies and
+Gantt charts (org-edna)? above: =:BLOCKER: ids( )= gates tasks,
 =:TRIGGER:   todo!(NEXT)= advances the chain, =M-m p g= turns it all
 into a Mermaid gantt.
 
@@ -2153,7 +2228,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--heading "  Org & projects:")
       (my/start--key "M-m O"   "Switch org directory (private/work)")
       (my/start--key "M-m a"   "Agenda (a m = My work, a o = decisions)")
-      (my/start--key "M-m c"   "Capture (t=Todo d=Decision m=Meeting l=Labor)")
+      (my/start--key "M-m c"   "Capture (m=Meeting l=Labor)")
       (my/start--key "M-m M-t" "Set state (reasons forced on @-states)")
       (my/start--key "M-m M-z" "Change note: log what/why on this entry")
       (my/start--key "M-m x s" "Supersede entry (C-u: successor = copy)")
@@ -2162,6 +2237,8 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "M-m i/o" "Clock in (C-u: recent task) / clock out")
       (my/start--key "M-m j"   "Jump to running clock")
       (my/start--key "M-m a d" "Today: timeline of clocked time")
+      (my/start--key "M-m R"   "Scan now for due-task reminders")
+      (my/start--key "C-k"     "Insert roam node link (in org buffers)")
       (my/start--key "M-m p a" "Agenda for a subfolder")
       (my/start--key "M-m p f" "Agenda for this file only")
       (my/start--key "M-m p g" "Gantt export (Mermaid)")
@@ -2227,8 +2304,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
  Org
    M-m a     org-agenda (a m My-work, a o decisions, a u unowned,
            a d today's clocked timeline)
-   M-m c     org-capture (t todo, n note, d decision, m meeting,
-             l laborprotokoll, p projekt)
+   M-m c     org-capture (m meeting, l laborprotokoll)
    M-m M-t   org-todo              M-m M-s   org-schedule    (in org-mode,
    M-m M-d   org-deadline          M-m M-c   C-c C-c          all mirrored
    M-m M-e   export                M-m M-l   insert link      from C-c C- )
