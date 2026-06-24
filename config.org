@@ -1094,9 +1094,16 @@ commands, which stays set through the whole setup.
   "Non-nil while an org capture is in progress, so my/org-new-file-header
 knows to skip capture-created files (they write their own headers).")
 (defun my/org-capture-wrap (orig &rest args)
-  "Bind `my/in-org-capture' around a capture command."
-  (let ((my/in-org-capture t))
-    (apply orig args)))
+  "Set `my/in-org-capture' around a capture command.
+Uses setq with save/restore rather than a `let' on the special var:
+let-shadowing a defvar'd symbol triggers a spurious \"defining as
+dynamic an already lexical var\" warning under native compilation.
+OLD is an ordinary lexical local, so it never collides. Save/restore
+(vs. set-to-nil) also keeps nested captures correct."
+  (let ((old my/in-org-capture))
+    (setq my/in-org-capture t)
+    (unwind-protect (apply orig args)
+      (setq my/in-org-capture old))))
 (require 'org-capture nil t)
 (dolist (fn '(org-capture org-roam-capture org-roam-dailies-capture-today))
   (when (fboundp fn)
@@ -1393,6 +1400,55 @@ Delegation = ownership + reasoned state change:   M-m x g
       (insert link))
     (goto-char (+ insert-at (length link)))))
 
+;; C-k node insert without the concept/collection template choice.
+;; New node: pick a directory, the typed title becomes the (slugified)
+;; file name, #+title + #+date are pre-filled, and you land in the new
+;; file to write — finish by just saving. Existing node: behaves exactly
+;; like org-roam-node-insert, with NO directory prompt (the dir question
+;; lives inside the template path, which is only expanded when a new node
+;; is actually created).
+
+;; org-roam's ${...} expander calls any fboundp symbol with the node, so
+;; these give us placeholders that run our own code during expansion:
+(defun my/org-roam-node-slug-de (node)
+  "Slug of NODE's title via `my/org-slug' (keeps Umlaute)."
+  (my/org-slug (org-roam-node-title node)))
+
+(defun my/org-roam-capture-dir (&optional _node)
+  "Prompt for a target directory (absolute, trailing slash).
+Only called while expanding a NEW node's path, so existing-node
+inserts never see this prompt."
+  (file-name-as-directory (my/org-pick-dir my/org-notes-dir)))
+
+(defun my/org-roam-node-insert-quick ()
+  "Insert a roam link; new nodes use one no-choice template and open
+for editing. Existing nodes are linked without any extra prompt."
+  (interactive)
+  (let* ((created nil)
+         (grab (lambda ()
+                 (setq created (buffer-file-name
+                                (or (buffer-base-buffer) (current-buffer)))))))
+    ;; org-roam-capture-templates is a defcustom in org-roam, which is
+    ;; loaded lazily (first C-k). At compile time it isn't yet known to
+    ;; be special, so a plain `let' would bind it LEXICALLY — the
+    ;; override would be ignored and org-roam's later defcustom would
+    ;; warn/err ("defining as dynamic an already lexical var"). `dlet'
+    ;; forces a dynamic binding regardless of load order.
+    (dlet ((org-roam-capture-templates
+            '(("d" "default" plain "%?"
+               :if-new (file+head
+                        "${my/org-roam-capture-dir}${my/org-roam-node-slug-de}.org"
+                        "#+title: ${title}\n#+date: %<[%Y-%m-%d %a]>\n\n")
+               :immediate-finish t
+               :unnarrowed t))))
+      (add-hook 'org-roam-capture-new-node-hook grab)
+      (unwind-protect (org-roam-node-insert)
+        (remove-hook 'org-roam-capture-new-node-hook grab)))
+    ;; if a new node was created, drop into it to write
+    (when (and created (file-exists-p created))
+      (find-file created)
+      (goto-char (point-max)))))
+
 (defun my/org-supersede (&optional copy)
   "Supersede the entry at point with a successor sibling.
 With prefix argument COPY (\\[universal-argument]), the successor starts
@@ -1616,8 +1672,9 @@ and survives Emacs restarts.
          ;; turning it into a node on the way. See my/org-link-to-foreign-heading.
          ("M-m n h" . my/org-link-to-foreign-heading)
          ;; C-k inserts a node link (find-or-create) — org buffers only,
-         ;; so plain C-k = kill-line everywhere else.
-         (:map org-mode-map ("C-k" . org-roam-node-insert))
+         ;; so plain C-k = kill-line everywhere else. New nodes skip the
+         ;; concept/collection choice: see my/org-roam-node-insert-quick.
+         (:map org-mode-map ("C-k" . my/org-roam-node-insert-quick))
          ("M-m n c" . org-roam-capture)
          ("M-m n t" . org-roam-tag-add)
          ("M-m n j" . org-roam-dailies-capture-today)
