@@ -1343,6 +1343,56 @@ Delegation = ownership + reasoned state change:   M-m x g
       (org-id-get-create))))
 (add-hook 'org-insert-heading-hook #'my/org-id-new-todo-heading)
 
+;; Link to a heading in ANOTHER file that isn't a node yet, without
+;; leaving the current document. Flow: pick a recent .org file -> pick
+;; one of its headings (completion; the file is opened invisibly, never
+;; shown) -> that heading gets an ID if it lacks one, the file is saved,
+;; and an [[id:…][Heading]] link is inserted back at the original cursor
+;; position. A file we had to open ourselves is killed again afterwards;
+;; a file you were already editing is left open (and unsaved buffers are
+;; never force-closed).
+(defun my/org-link-to-foreign-heading ()
+  "Insert an id link to a heading in a recentf-picked org file."
+  (interactive)
+  (let* ((org-files (seq-filter (lambda (f) (string-suffix-p ".org" f))
+                                recentf-list))
+         (_ (unless org-files (user-error "No recent .org files")))
+         (file (expand-file-name
+                (completing-read "Datei: " org-files nil t)))
+         (insert-at (point-marker))
+         (already (find-buffer-visiting file))
+         (buf (or already (find-file-noselect file)))
+         link)
+    (with-current-buffer buf
+      (let* ((cands (org-map-entries
+                     (lambda ()
+                       (cons (format "%s%s"
+                                     (make-string (* 2 (1- (org-current-level))) ?\s)
+                                     (org-get-heading t t t t))
+                             (point-marker)))
+                     nil 'file))
+             (_ (unless cands (user-error "No headings in %s"
+                                          (file-name-nondirectory file))))
+             (pick (completing-read "Header: " cands nil t))
+             (mk   (cdr (assoc pick cands))))
+        (save-excursion
+          (goto-char mk)
+          (let ((id (org-id-get-create))
+                (title (org-get-heading t t t t)))
+            ;; register the location now so the link resolves immediately,
+            ;; without waiting for roam autosync / a global id scan
+            (org-id-add-location id (buffer-file-name))
+            (setq link (format "[[id:%s][%s]]" id title))))
+        (when (buffer-modified-p) (save-buffer))))
+    ;; only close the file if WE opened it and it has no pending edits
+    (when (and (not already) (buffer-live-p buf)
+               (not (buffer-modified-p buf)))
+      (kill-buffer buf))
+    (save-excursion
+      (goto-char insert-at)
+      (insert link))
+    (goto-char (+ insert-at (length link)))))
+
 (defun my/org-supersede (&optional copy)
   "Supersede the entry at point with a successor sibling.
 With prefix argument COPY (\\[universal-argument]), the successor starts
@@ -1562,6 +1612,9 @@ and survives Emacs restarts.
   :bind (("M-m n l" . org-roam-buffer-toggle)
          ("M-m n f" . org-roam-node-find)
          ("M-m n i" . org-roam-node-insert)
+         ;; Link to a not-yet-node heading in another (recentf) file,
+         ;; turning it into a node on the way. See my/org-link-to-foreign-heading.
+         ("M-m n h" . my/org-link-to-foreign-heading)
          ;; C-k inserts a node link (find-or-create) — org buffers only,
          ;; so plain C-k = kill-line everywhere else.
          (:map org-mode-map ("C-k" . org-roam-node-insert))
@@ -2243,6 +2296,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "M-m p f" "Agenda for this file only")
       (my/start--key "M-m p g" "Gantt export (Mermaid)")
       (my/start--key "M-m n f" "Roam: find note")
+      (my/start--key "M-m n h" "Link a heading in another file (makes it a node)")
       (my/start--key "M-m n j" "Roam: today's daily")
       (my/start--key "S- / "   "Cycle TODO state (on a heading)")
       (my/start--key "M-o g"   "Magit (git) status")
