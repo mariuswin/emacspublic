@@ -1080,11 +1080,11 @@ the right-padding that alignment adds never drags the cursor along.
   (add-hook 'post-self-insert-hook #'my/org-table-align-maybe nil t))
 #+end_src
 
-*** New .org files get #+title and #+date automatically
+*** New .org files get #+title, #+date and an org id automatically
 Visiting a brand-new empty =.org= file under =org-directory= inserts a
 title (from the file name: dashes/underscores → spaces, capitalised; a
 roam-style =20260612…-= timestamp prefix is stripped) plus the creation
-date. It only touches genuinely empty files and skips capture/roam
+date and a file-level org id. It only touches genuinely empty files and skips capture/roam
 buffers (which write their own headers), so existing notes are never
 disturbed. Capture is detected via a flag bound around the capture
 commands, which stays set through the whole setup.
@@ -1110,7 +1110,7 @@ OLD is an ordinary lexical local, so it never collides. Save/restore
     (advice-add fn :around #'my/org-capture-wrap)))
 
 (defun my/org-new-file-header ()
-  "Insert #+title and #+date into a fresh empty .org file.
+  "Insert #+title, #+date and a file-level org id into a fresh empty .org file.
 Skips files created during a capture (which write their own headers),
 detected via the `my/in-org-capture' flag bound around capture commands."
   (when (and buffer-file-name
@@ -1123,6 +1123,9 @@ detected via the `my/in-org-capture' flag bound around capture commands."
            (title (capitalize (replace-regexp-in-string "[-_]+" " " clean))))
       (insert (format "#+title: %s\n#+date: %s\n\n"
                       title (format-time-string "[%Y-%m-%d %a]")))
+      (save-excursion
+        (goto-char (point-min))
+        (org-id-get-create))
       (goto-char (point-max)))))
 (add-hook 'org-mode-hook #'my/org-new-file-header)
 #+end_src
@@ -2260,12 +2263,136 @@ is not a repo yet; magit then offers to run magit-init for you.
 In the status buffer: ? shows all commands, s stage, c c commit,
 P p push, F p pull. (Requires Git for Windows on PATH.)
 
+Convention: cancelled or done tasks are cut out of their document in
+full and pasted into the commit message. The task body carries the
+cancel or resolving reason plus a link back to the document it was cut
+from; when the decision came out of a meeting, also paste a link to
+that meeting note into the commit message. The document stays lean;
+the full context lives on in the commit and the history mirror.
+
 #+begin_src emacs-lisp
 (use-package magit
   :bind (("M-o g" . magit-status))
   :custom
   (magit-display-buffer-function
    #'magit-display-buffer-same-window-except-diff-v1))
+#+end_src
+
+** Per-file commit + history mirror
+A file-scoped commit flow alongside Magit. =C-S-s= saves the current
+buffer, stages its file, and opens a commit-message buffer (C-s finalize,
+C-w abort); on finalize it commits and writes a read-only org record
+into a =history/= folder at the repo root (next to =.git=), with the
+message and the diff, named =<file>--<timestamp>--<hash>.org=. =M-m f h=
+browses the history records of the current buffer file, newest first.
+
+#+begin_src emacs-lisp
+(defun my/history-dir (root)
+  "Return the history directory for ROOT (a history/ folder next to .git)."
+  (expand-file-name "history" root))
+
+(defun my/current-repo-root ()
+  "Return the root of the git repo containing the current buffer's file."
+  (or (locate-dominating-file default-directory ".git")
+      (user-error "Not inside a git repo")))
+
+(defun my/slugify (path)
+  "Turn a relative file PATH into a filesystem-friendly slug."
+  (replace-regexp-in-string "[/.]" "-" path))
+
+(defvar-local my/pending-commit-file nil
+  "File path associated with the in-progress commit message buffer.")
+
+(defvar-local my/pending-commit-root nil
+  "Repo root associated with the in-progress commit message buffer.")
+
+(defun my/save-stage-commit ()
+  "Save the current buffer, stage the file, and open a commit-message buffer."
+  (interactive)
+  (unless buffer-file-name (user-error "Buffer has no file"))
+  (save-buffer)
+  (let* ((file buffer-file-name)
+         (root (my/current-repo-root))
+         (default-directory root))
+    (call-process "git" nil nil nil "add" file)
+    (let ((buf (get-buffer-create "*commit-message*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (org-mode)
+        (my/commit-message-mode 1)
+        (setq my/pending-commit-file file
+              my/pending-commit-root root))
+      (pop-to-buffer buf))))
+
+(define-minor-mode my/commit-message-mode
+  "Minor mode for editing a commit message.
+Finalize with C-s, abort with C-w."
+  :lighter " Commit"
+  :keymap (let ((map (make-sparse-keymap)))
+            (define-key map (kbd "C-s") #'my/finalize-commit)
+            (define-key map (kbd "C-w") #'my/abort-commit)
+            map))
+
+(defun my/abort-commit ()
+  "Abort the pending commit. File remains staged."
+  (interactive)
+  (quit-window t)
+  (message "Commit aborted (file stays staged)"))
+
+(defun my/finalize-commit ()
+  "Commit the staged file using the current buffer as the message,
+then write a read-only history record with the diff."
+  (interactive)
+  (when (string-blank-p (buffer-string)) (user-error "Empty commit message"))
+  (let* ((file my/pending-commit-file)
+         (root my/pending-commit-root)
+         (msg (buffer-substring-no-properties (point-min) (point-max)))
+         (default-directory root))
+    (call-process-region (point-min) (point-max) "git" nil nil nil "commit" "-F" "-")
+    (quit-window t)
+    (my/write-history-record file root msg)
+    (message "Committed and archived.")))
+
+(defun my/write-history-record (file root msg)
+  "Write a read-only org file capturing the commit MSG and diff for FILE."
+  (let* ((default-directory root)
+         (history-dir (my/history-dir root))
+         (hash (string-trim (shell-command-to-string "git rev-parse HEAD")))
+         (rel (file-relative-name file root))
+         (diff (shell-command-to-string
+                (format "git show --format= %s -- %s"
+                        (shell-quote-argument hash)
+                        (shell-quote-argument rel))))
+         (uuid (org-id-new))
+         (target (expand-file-name
+                  (format "%s--%s--%s.org"
+                          (my/slugify rel)
+                          (format-time-string "%Y%m%dT%H%M%S")
+                          (substring hash 0 8))
+                  history-dir)))
+    (unless (file-directory-p history-dir)
+      (make-directory history-dir t))
+    (with-temp-file target
+      (insert (format ":PROPERTIES:\n:ID: %s\n:GIT_HASH: %s\n:GIT_FILE: %s\n:GIT_DATE: %s\n:END:\n\n"
+                      uuid hash rel (format-time-string "%FT%T%z")))
+      (insert msg "\n\n")
+      (insert "#+begin_src diff\n" diff "#+end_src\n"))
+    (set-file-modes target #o444)))
+
+(defun my/browse-file-history ()
+  "Browse history records for the current buffer's file, newest first."
+  (interactive)
+  (let* ((root (my/current-repo-root))
+         (rel (file-relative-name buffer-file-name root))
+         (slug (my/slugify rel))
+         (candidates (sort (directory-files (my/history-dir root) t (concat "^" (regexp-quote slug) "--"))
+                           #'string>)))
+    (unless candidates (user-error "No history for this file"))
+    (find-file (completing-read "History: " candidates))
+    (view-mode 1)))
+
+(global-set-key (kbd "C-S-s") #'my/save-stage-commit)
+(global-set-key (kbd "M-m f h") #'my/browse-file-history)
 #+end_src
 
 ** Start page   shortcut reference
