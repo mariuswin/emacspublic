@@ -14,7 +14,7 @@ so startup stays fast after the first run.
 To change the configuration: edit the blocks here, restart Emacs (or
 =M-x org-babel-load-file= on this file). Never edit =config.el=   it
 is generated. In a team, this file lives in the shared repository: the
-conventions that must be universal (keyword set, forced-reason states,
+conventions that must be universal (keyword set,
 archive location) are distributed as code, not as a wiki page.
 
 One standing rule from the leader-key mechanism: never bind anything
@@ -27,109 +27,6 @@ under =C-c= in this file   always bind under =M-m= directly.
 Use =M-m O= to switch between org directories (e.g., =~/org/= for private,
 =~/nextcloud/org/= for work). Previously used directories are remembered
 and offered for completion. The current choice persists across restarts.
-
-** Folders are suggestions, not requirements
-
-Every folder under your org directory is just a folder: it lives in the
-agenda, and capture asks you which one to file into. Create whatever
-structure suits you. The table below shows a /suggested/ convention  
-nothing is auto-created:
-
-| Folder       | Suggested use                                                                   |
-|--------------+---------------------------------------------------------------------------------|
-| =inbox.org=  | unsorted front door (one file you can pick during capture)                      |
-| =dailies/=   | journal, one file per day; optional; never edited after its day                 |
-| =records/=   | typed records (=:labor:=, =:meeting:=,  ); immutable; link projects by ID       |
-| =projects/=  | one file per project (the default for the =p= capture)                          |
-| =areas/=     | machines, process domains, teams                                                |
-| =notes/=     | =:concept:= Zettel and =:collection:= items (movies, places   with TODO states) |
-| =*/archive/= | archive/ folders are the only ones excluded from the agenda                     |
-
-The agenda scans your org directory recursively (minus =archive/= folders),
-rebuilt before each =M-m a=. Add a folder and it shows up; move something
-into an =archive/= and it drops out.
-
-When a project changes something that belongs to an area (a machine
-parameter, a standard process), the change happens *at the area*  
-where current truth lives   with a log note linking the project that
-caused it. Links are the joins; nothing is duplicated.
-
-** What dailies are for (and when to skip them)
-
-The daily note is the journal: the moment-record for everything that
-has no other home. Because task creation and every state change are
-already logged mechanically (=CREATED= stamps, =:LOGBOOK:= entries),
-dailies carry *zero bookkeeping duty*   never write "opened task X"
-into one. What remains for them is narrative: observations too small
-for a Laborprotokoll, context ("Lieferant angerufen, M?ller meldet
-sich Montag"), half-thoughts, the informal counterpart to the formal
-records. Their use case is answering, years later, "what was going on
-around day X   what did I know, what was I trying?".
-
-If you don't journal, skip dailies entirely: nothing else in the
-system depends on them. They exist as capacity (=M-m n j=), not as
-obligation.
-
-** The rituals
-
-Everything you will ever do in this system is one of these moves:
-
-1. *Capture*   =M-m c= (=m= meeting,
-   =l= Laborprotokoll). Every template prompts for the
-   folder (and file) under =org/= to file into; the typed name becomes
-   the =#+title=. ID and =CREATED= stamp are automatic   every captured
-   file gets a file-level ID, every captured/todo heading gets a heading
-   ID, so every captured thing is a linkable roam node from birth. You
-   never create entities by typing raw headings mid-thought and that is
-   what keeps moment-records safe: they only ever contain /links/ to
-   entities, never the entities themselves.
-2. *State change*   =M-m M-t=. Where a reason matters (WAIT, DLGT,
-   CANCELLED, ONHOLD, SUPERSEDED, DROPPED), org refuses to proceed
-   without one and stamps time + author into the =:LOGBOOK:=.
-   Delegation is =M-m x g=: OWNER is set, the forced note is where you
-   write the context the colleague needs.
-3. *Change note*   =M-m M-z=. The manual twin of the state change: any
-   meaningful content edit to an entity   a parameter value, a BOM
-   row, a protocol step   gets a note saying WHAT changed and WHY.
-   For document revisions, bump a =:REV:= property in the same breath
-   and write the note in change-notice style: "Rev C: Pos 7 NBR  
-   PEEK   NBR-Dichtungen versagen ?ber 140 ?C." The note is the
-   searchable semantic layer; =git log -p= on the file is the
-   full-text diff layer. Between the two, even a 400-row BOM has
-   complete browsable history with zero snapshots in the workspace.
-4. *Supersede*   =M-m x s=. When something is /replaced/ rather than
-   revised or finished: decisions overruled, approaches abandoned,
-   processes redesigned. Old and new are linked both ways by ID, the
-   reason is forced, and the old node keeps its full content as a
-   readable record until archived. =C-u M-m x s= starts the successor
-   as a full copy   for document-style rework.
-5. *Archive*   =M-m x a= for subtrees (  =archive/= next to the file,
-   stamped with time, origin, final state), =git mv= for whole project
-   files. "Terminal" and "archivable" are separate judgements: a
-   SUPERSEDED process revision stays in its area file while anyone
-   might still operate under it.
-
-The routing between 2, 4 and in-place revision comes down to two
-distinctions. /Finished vs. replaced/: DONE and CANCELLED end a thing;
-SUPERSEDED says "a successor exists" and points to it. /Revision vs.
-supersession/: the same artifact evolving (BOM Rev B   Rev C) is an
-in-place edit plus a change note, with git holding the old full text;
-a different artifact taking its place (approach B replaces approach A)
-is a supersession, where the old node remains readable forever.
-
-#+begin_src org
-,* SUPERSEDED Dichtungswerkstoff: NBR
-:PROPERTIES:
-:ID:            abc 
-:SUPERSEDED_BY: [[id:xyz ]]
-:END:
-
-,* ACTIVE Dichtungswerkstoff: PEEK
-:PROPERTIES:
-:ID:         xyz 
-:SUPERSEDES: [[id:abc ]]
-:END:
-#+end_src
 
 ** Dependencies and Gantt charts (org-edna)
 
@@ -208,22 +105,21 @@ on different projects never touch the same file, and when two people
 do, logbook collisions are append-append conflicts (keep both lines,
 done).
 
-Delegation is ownership plus a reasoned state change. The task stays
-in the project file where it belongs   tasks live with their project,
-not with their person   and the colleague finds it in their
-=M-m a m= ("My work") view after the next pull. Each person sets
-=my/org-user= to match their git identity.
+To hand a task to a colleague, set its =OWNER= property by hand (tasks
+live with their project, not with their person); the colleague finds
+it in their =M-m a m= ("My work") view after the next pull. Each person
+sets =my/org-user= to match their git identity.
 
 Colleagues without Emacs are degraded gracefully, not excluded: the
 tree is plain text, any editor opens it, any project-wide search
 replaces ripgrep, and the two human rules   never edit moment-records,
-write a dated reason line when you change an entity   are followable
+commit with a reason when you change an entity   are followable
 in Notepad. The tooling automates the conventions; it doesn't define
 them.
 
 Two conventions no tool can enforce, agree on them explicitly: reasons
 are written *for the stranger* (the colleague three years from now who
-finds the node via search   "Lieferantenproblem" helps nobody; "M?ller
+reads the commit message   "Lieferantenproblem" helps nobody; "M?ller
 GmbH hat die 12mm-NBR-Variante eingestellt, keine Zweitquelle unter
 5k MOQ" is gold), and the daily inbox review actually happens   an
 inbox that silts up becomes a second workspace, and the system dies
@@ -231,47 +127,38 @@ of it.
 
 ** When to do what
 
-| Situation                                   | Do this                                                                            |
-|---------------------------------------------+------------------------------------------------------------------------------------|
-| What happened today, context, half-thoughts | =M-m n j= daily note; link entities; never edit after today                          |
-| Experiment                                  | =M-m c l=   typed record in =records/=, project linked by ID                           |
-| Meeting                                     | =M-m c m=                                                                            |
-| New task                                    | capture, then refile (=M-m M-w=   picks any node via roam) into the project          |
-| Hand a task to a colleague                  | =M-m x g=   OWNER set, context note forced; appears in their My-work view            |
-| Task no longer relevant                     | =M-m M-t c=   reason forced; =M-m x a= to archive                                      |
-| Machine parameter changes                   | edit the value in the area file; =M-m M-z=: alt   neu, warum, link the cause         |
-| Decision overruled / approach replaced      | =M-m x s= on the old node; reason forced; write the successor                        |
-| Spec/BOM/protocol revision (same artifact)  | edit in place, bump =:REV:=, =M-m M-z= in change-notice style; =git log -p= has the diff |
-| Document replaced by a different approach   | =C-u M-m x s= (successor = full copy), rework it                                     |
-| Project finished or cancelled               | mark the heading (reason if cancelled); =git mv= to =projects/archive/=                |
-| Learned something worth keeping             | =M-m n c=, template =c=   concept note in =notes/=; rewrite freely forever               |
-| Movie / place / item to track               | =M-m n c=, template =k=   collection item in =notes/=                                    |
-| "Didn't we already try this once?"          | =M-m f g= from =~/org=   archives included; read the logbook you find                  |
+| Situation                                                  | Do this                                                                    |
+|------------------------------------------------------------+----------------------------------------------------------------------------|
+| What happened today, context, half-thoughts                | Inbox                                                                      |
+| Experiment                                                 | =M-m c l=   typed record in =records/=, project linked by ID                   |
+| Meeting                                                    | =M-m c m=                                                                    |
+| New task                                                   | capture, then refile (=M-m M-w=   picks any node via roam) into the project  |
+| Hand a task to a colleague                                 | set =OWNER= by hand; appears in their My-work view                           |
+| Task no longer relevant                                    | =M-m x a= to archive, or cut subtree and put in commit message in a git repo |
+| Decision overruled / document replaced / parameter changed | cut the old node into the commit (Magit convention); write the new one     |
+| Spec/BOM/protocol revision                                 | edit in place, bump =:REV:=; =git log -p= has the diff                         |
+| "Didn't we already try this once?"                         | =M-m f g= from =~/org=   archives included; read the logbook you find          |
 
 ** The loop
 
-Daily, ten minutes: pull; empty the inbox (refile, delegate, or
-cancel-with-reason); optionally write the daily note; push. Weekly,
-twenty minutes: sweep WAIT and DLGT (anything older than expected gets
-a nudge or a state change with reason); archive everything terminal
-whose dependencies are gone; skim ACTIVE decisions for any that
-reality has silently overruled   supersede those /now/, while you
-still remember why.
+Daily, ten minutes: pull; empty the inbox (refile or archive);
+optionally write the daily note; push. Weekly, twenty minutes: sweep
+WAIT and DLGT (anything stale gets a nudge or gets archived); archive
+everything terminal whose dependencies are gone; skim ACTIVE decisions
+for any that reality has silently overruled   cut them into a commit
+/now/, while you still remember why.
 
 ** Why this stays discoverable
 
-The cancellation note you were forced to write contains the problem's
-own vocabulary, so future searches for the problem find the abandoned
-attempt. Supersession links form chains walkable in both directions
-from any point. The archives are ordinary org files under the same
+The commit message you write when cutting a dead-end task carries the
+problem's own vocabulary, so future searches for the problem find the
+abandoned attempt. The archives are ordinary org files under the same
 root, so ripgrep and the org-roam graph reach them without knowing
 they are archives   and because every record links its project by ID,
 a project's backlink buffer lists every protocol and meeting ever
-taken for it, even after the project itself was archived. Git
-underneath remains what it is good at: full-text diffs of large
-documents, disaster recovery, proof. The semantic history   what
-changed, when, by whom, and why   lives in the org layer, where search
-can reach it.
+taken for it, even after the project itself was archived. Git is the
+history layer: full-text diffs of large documents, the what / when /
+whom / why of every change, disaster recovery, proof.
 
 * Implementation
 
@@ -880,7 +767,7 @@ restriction intact.")
     ;; here: the CUA section mirrors all of org's C-c C-<key> bindings to
     ;; M-m M-<key> automatically (M-m M-t = todo, M-m M-s = schedule,
     ;; M-m M-d = deadline, M-m M-c = C-c C-c, M-m M-e = export, M-m M-l = link,
-    ;; M-m M-z = add change note, M-m M-o = open link, M-m M-a = attach, ...).
+    ;; M-m M-o = open link, M-m M-a = attach, ...).
     :bind (("M-m a" . org-agenda)
            ("M-m c" . org-capture))
     :custom
@@ -898,32 +785,11 @@ restriction intact.")
     ;; --- One Round System: states ---------------------------------------
     ;; Row 1 = actionable items (tasks, tickets, yours or delegated).
     ;; Row 2 = stateful artifacts (projects, decisions, documents, processes).
-    ;; "!" = silent timestamp into :LOGBOOK: (no prompt).
-    ;; Reasons for state changes are written manually via M-m M-z (org-add-note).
     (org-todo-keywords
      '((sequence "TODO(t)" "NEXT(n)" "WAIT(w)" "DLGT(g)"
                  "|" "DONE(d)" "CANCELLED(c)")
        (sequence "ACTIVE(a)" "ONHOLD(h)"
                  "|" "FINISHED(f)" "SUPERSEDED(s)" "DROPPED(x)")))
-    ;; --- One Round System: the log primitive -----------------------------
-    ;; One mechanism for everything: a timestamped, author-stamped, reasoned
-    ;; entry in :LOGBOOK: at the moment of change. State changes write it
-    ;; automatically; content changes get it manually via M-m M-z
-    ;; (org-add-note). %u stamps the author   keep `user-login-name'
-    ;; consistent with your git identity (or setq it in site-local config).
-    (org-log-into-drawer t)
-    (org-treat-insert-todo-heading-as-state-change t) ;; creation = 1st event
-    (org-log-refile 'time)                            ;; inbox->home is logged
-    (org-log-note-headings
-     '((done        . "CLOSING NOTE %t by %u")
-       (state       . "State %s from %S %t by %u")
-       (note        . "Note taken on %t by %u")
-       (reschedule  . "Rescheduled from %S on %t by %u")
-       (delschedule . "Not scheduled, was %S on %t by %u")
-       (redeadline  . "New deadline from %S on %t by %u")
-       (deldeadline . "Removed deadline, was %S on %t by %u")
-       (refile      . "Refiled on %t by %u")
-       (clock-out   . "")))
     ;; --- One Round System: workspace vs. memory --------------------------
     ;; Archived subtrees land in an archive/ subfolder NEXT TO their source
     ;; file, as ordinary .org files stamped with time/origin/final state:
@@ -931,10 +797,9 @@ restriction intact.")
     ;; still fully visible to consult-ripgrep and the org-roam graph.
     (org-archive-location "archive/%s::")
     (org-archive-subtree-add-inherited-tags t)
-    ;; Refile targets for M-x org-refile and the agenda's refile. (The
-    ;; org-log-refile note applies to those paths; org-roam-refile   on
-    ;; both M-m M-w and M-m C-w, set in :config below   moves to a node
-    ;; without writing a log line. CREATED stamps and git cover origin.)
+    ;; Refile targets for M-x org-refile and the agenda's refile.
+    ;; org-roam-refile (on both M-m M-w and M-m C-w, set in :config
+    ;; below) moves to a node; CREATED stamps and git cover origin.
     (org-refile-targets '((org-agenda-files :maxlevel . 3)))
     (org-refile-use-outline-path 'file)
     (org-outline-path-complete-in-steps nil)
@@ -986,46 +851,6 @@ Bigger headings with subtle background highlight.
 (add-hook 'org-mode-hook #'my/org-heading-faces)
 ;; Re-apply after theme switch
 (add-hook 'after-load-theme-hook #'my/org-heading-faces)
-#+end_src
-
-*** Debounced state-change logging
-When cycling through states rapidly, only log the final state after 1.5s idle.
-#+begin_src emacs-lisp
-(defvar my/org-state-log-timer nil
-  "Idle timer for debounced state logging.")
-(defvar my/org-state-log-info nil
-  "Pending state change: (marker from-state to-state).")
-
-(defun my/org-log-state-now ()
-  "Insert the pending state-change log entry."
-  (when-let ((info my/org-state-log-info))
-    (cl-destructuring-bind (marker from to) info
-      (when (buffer-live-p (marker-buffer marker))
-        (with-current-buffer (marker-buffer marker)
-          (save-excursion
-            (goto-char marker)
-            (org-add-log-setup 'state to from 'time))))))
-  (setq my/org-state-log-info nil))
-
-(defun my/org-todo-debounced (orig-fun &optional arg)
-  "Advice for `org-todo' that debounces logging."
-  ;; Cancel any pending log
-  (when my/org-state-log-timer
-    (cancel-timer my/org-state-log-timer)
-    (setq my/org-state-log-timer nil))
-  (let ((from (org-get-todo-state))
-        (marker (point-marker)))
-    ;; Do the state change without logging
-    (let ((org-inhibit-logging t))
-      (funcall orig-fun arg))
-    ;; Queue debounced log
-    (let ((to (org-get-todo-state)))
-      (when (not (equal from to))
-        (setq my/org-state-log-info (list marker from to))
-        (setq my/org-state-log-timer
-              (run-with-idle-timer 5 nil #'my/org-log-state-now))))))
-
-(advice-add 'org-todo :around #'my/org-todo-debounced)
 #+end_src
 
 *** Live table alignment while typing
@@ -1287,25 +1112,12 @@ record taken for the project."
 #+end_src
 
 ** One Round System   lifecycle commands
-The five rituals and where they live:
-  1. Capture       M-m c     every template asks which folder/file under org/
-  2. State change  M-m M-t   reasons FORCED on WAIT/DLGT/CANCELLED/
-                             ONHOLD/SUPERSEDED/DROPPED
-  3. Change note   M-m M-z   org-add-note   the manual "commit message"
-                             for content edits (parameter changed, BOM
-                             row swapped, protocol step adjusted): write
-                             WHAT and WHY; time + author are automatic.
-                             Full-text diffs of big documents stay git's
-                             job (M-o g, git log -p)   the note is the
-                             searchable semantic layer on top.
-  4. Supersede     M-m x s   replaced-by-something-else (decisions,
-                             approaches, processes); C-u M-m x s makes
-                             the successor start as a full COPY (for
-                             document-style rework)
-  5. Archive       M-m x a   subtree -> archive/ next to its file;
-                             whole project files: git mv to
-                             projects/archive/ instead
-Delegation = ownership + reasoned state change:   M-m x g
+The rituals and where they live:
+  1. Capture   M-m c     every template asks which folder/file under org/
+  2. Archive   M-m x a   subtree -> archive/ next to its file; whole
+                        project files: git mv to projects/archive/
+History (state transitions, the what/why of edits, replaced decisions,
+cancelled tasks) lives in git   see the convention under Magit.
 
 #+begin_src emacs-lisp
 ;; Every capture becomes a node. EVERY captured file gets a file-level ID
@@ -1452,48 +1264,6 @@ for editing. Existing nodes are linked without any extra prompt."
       (find-file created)
       (goto-char (point-max)))))
 
-(defun my/org-supersede (&optional copy)
-  "Supersede the entry at point with a successor sibling.
-With prefix argument COPY (\\[universal-argument]), the successor starts
-as a full copy of the old subtree   for reworking document-like entities.
-Without it, the successor starts empty with the same title   for
-decisions and approaches, where the new content is genuinely new.
-Links predecessor and successor in both directions via ID, then marks
-the old entry SUPERSEDED; org asks for the reason at the end (forced)."
-  (interactive "P")
-  (org-back-to-heading t)
-  (let ((lvl    (org-outline-level))
-        (old-id (org-id-get-create))
-        (title  (org-get-heading t t t t))
-        new-id)
-    (if copy
-        (progn
-          (org-copy-subtree)
-          (org-end-of-subtree t t)
-          (let ((pos (point)))
-            (org-paste-subtree lvl)
-            (goto-char pos))
-          (org-delete-property "ID"))
-      (org-insert-heading-after-current)
-      (insert title))
-    (setq new-id (org-id-get-create))
-    (org-set-property "SUPERSEDES" (format "[[id:%s]]" old-id))
-    (org-entry-put nil "TODO" "ACTIVE")
-    (save-excursion
-      (org-id-goto old-id)
-      (org-set-property "SUPERSEDED_BY" (format "[[id:%s]]" new-id))
-      (org-todo "SUPERSEDED"))))
-
-(defun my/org-delegate (person)
-  "Hand the entry at point to PERSON: set OWNER, then enter DLGT.
-The forced note is where the context goes that PERSON will need  
-write it for them, not for yourself."
-  (interactive "sDelegieren an: ")
-  (org-set-property "OWNER" person)
-  (org-todo "DLGT"))
-
-(global-set-key (kbd "M-m x s") #'my/org-supersede)
-(global-set-key (kbd "M-m x g") #'my/org-delegate)
 (global-set-key (kbd "M-m x a") #'org-archive-subtree)
 #+end_src
 
@@ -2085,7 +1855,7 @@ copy/cut bindings shine through."
   (define-key wgrep-mode-map (kbd "C-<return>") #'wgrep-finish-edit)
   (define-key wgrep-mode-map (kbd "C-w")        #'wgrep-abort-changes))
 
-;; Org note buffer (state-change reason, M-m M-z add-note, clock-out,  ):
+;; Org note buffer (clock-out and other org note prompts,  ):
 ;; it's a plain org-mode buffer with `org-finish-function' set, so without
 ;; this the global CUA keys would mis-fire here (C-s -> save-buffer, C-w ->
 ;; kill-current-buffer). A buffer-local MINOR mode reroutes them to
@@ -2286,6 +2056,8 @@ into a =history/= folder at the repo root (next to =.git=), with the
 message and the diff, named =<file>--<timestamp>--<hash>.org=. =M-m f h=
 browses the history records of the current buffer file, newest first.
 
+
+
 #+begin_src emacs-lisp
 (defun my/history-dir (root)
   "Return the history directory for ROOT (a history/ folder next to .git)."
@@ -2395,6 +2167,10 @@ then write a read-only history record with the diff."
 (global-set-key (kbd "M-m f h") #'my/browse-file-history)
 #+end_src
 
+This way decisions can be written in the commit message as a node and can be
+referenced in future decisions as well as can reference older decisions they
+supercede. Via Backlinks superceding decisions can be discovered in older decisions.
+
 ** Start page   shortcut reference
 Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
 
@@ -2464,12 +2240,8 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
 
       (my/start--heading "  Org & projects:")
       (my/start--key "M-m O"   "Switch org directory (private/work)")
-      (my/start--key "M-m a"   "Agenda (a m = My work, a o = decisions)")
+      (my/start--key "M-m a"   "Agenda (a m = My work )")
       (my/start--key "M-m c"   "Capture (m=Meeting l=Labor)")
-      (my/start--key "M-m M-t" "Set state (reasons forced on @-states)")
-      (my/start--key "M-m M-z" "Change note: log what/why on this entry")
-      (my/start--key "M-m x s" "Supersede entry (C-u: successor = copy)")
-      (my/start--key "M-m x g" "Delegate (OWNER + DLGT context note)")
       (my/start--key "M-m x a" "Archive subtree (-> archive/ next to file)")
       (my/start--key "M-m i/o" "Clock in (C-u: recent task) / clock out")
       (my/start--key "M-m j"   "Jump to running clock")
@@ -2481,7 +2253,6 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "M-m p g" "Gantt export (Mermaid)")
       (my/start--key "M-m n f" "Roam: find note")
       (my/start--key "M-m n h" "Link a heading in another file (makes it a node)")
-      (my/start--key "M-m n j" "Roam: today's daily")
       (my/start--key "S- / "   "Cycle TODO state (on a heading)")
       (my/start--key "M-o g"   "Magit (git) status")
       (insert "\n")
@@ -2546,17 +2317,12 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
    M-m M-t   org-todo              M-m M-s   org-schedule    (in org-mode,
    M-m M-d   org-deadline          M-m M-c   C-c C-c          all mirrored
    M-m M-e   export                M-m M-l   insert link      from C-c C- )
-   M-m M-z   add change note   log WHAT changed and WHY at this entry
    M-m n ... org-roam (f find, i insert, c capture, j/d dailies,  )
    M-m d ... org-download (s screenshot, y yank, d delete)
    M-m t     org-transclusion
 
  Lifecycle   One Round System (M-m x ...)
-   M-m x s   supersede entry (C-u = successor starts as full copy)
-   M-m x g   delegate entry (sets OWNER + DLGT with forced context note)
    M-m x a   archive subtree -> archive/ subfolder next to the file
-   Reasons are FORCED when entering WAIT DLGT CANCELLED ONHOLD
-   SUPERSEDED DROPPED   time and author are stamped automatically.
 
  Clocking (time lands at the task's :LOGBOOK:)
    M-m i     clock in at point (C-u = pick from recent tasks)
