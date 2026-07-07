@@ -1215,13 +1215,12 @@ cancelled tasks) lives in git   see the convention under Magit.
       (insert link))
     (goto-char (+ insert-at (length link)))))
 
-;; C-k node insert without the concept/collection template choice.
-;; New node: pick a directory, the typed title becomes the (slugified)
-;; file name, #+title + #+date are pre-filled, and you land in the new
-;; file to write — finish by just saving. Existing node: behaves exactly
-;; like org-roam-node-insert, with NO directory prompt (the dir question
-;; lives inside the template path, which is only expanded when a new node
-;; is actually created).
+;; C-k opens roam node completion (pick or create a node as usual,
+;; nodes visible immediately). If you paste a URL (http/https/ftp, or
+;; starting with www.) into the completion, it is inserted as a website
+;; link instead; an active region becomes the description, otherwise
+;; you are prompted. New nodes use one no-choice template and open for
+;; editing.
 
 ;; org-roam's ${...} expander calls any fboundp symbol with the node, so
 ;; these give us placeholders that run our own code during expansion:
@@ -1235,20 +1234,24 @@ Only called while expanding a NEW node's path, so existing-node
 inserts never see this prompt."
   (file-name-as-directory (my/org-pick-dir my/org-notes-dir)))
 
+(defun my/ck--maybe-url-redirect ()
+  "In the roam node minibuffer: redirect C-k to a website link when a
+URL is pasted/typed."
+  (let ((s (minibuffer-contents-no-properties)))
+    (when (string-match-p "\\`\\(https?://\\|ftp://\\|www\\.\\)" s)
+      (throw 'my/ck--url (cons 'url s)))))
+
 (defun my/org-roam-node-insert-quick ()
-  "Insert a roam link; new nodes use one no-choice template and open
-for editing. Existing nodes are linked without any extra prompt."
+  "Insert a link. Roam node completion is the default (pick or create a
+node as usual, nodes visible immediately). If you paste a URL
+(http/https/ftp, or starting with www.) into the completion it is
+inserted as a website link instead; an active region becomes the
+description, otherwise you are prompted (default = the URL)."
   (interactive)
-  (let* ((created nil)
-         (grab (lambda ()
-                 (setq created (buffer-file-name
-                                (or (buffer-base-buffer) (current-buffer)))))))
-    ;; org-roam-capture-templates is a defcustom in org-roam, which is
-    ;; loaded lazily (first C-k). At compile time it isn't yet known to
-    ;; be special, so a plain `let' would bind it LEXICALLY — the
-    ;; override would be ignored and org-roam's later defcustom would
-    ;; warn/err ("defining as dynamic an already lexical var"). `dlet'
-    ;; forces a dynamic binding regardless of load order.
+  (let ((created nil)
+        (grab (lambda ()
+                (setq created (buffer-file-name
+                               (or (buffer-base-buffer) (current-buffer)))))))
     (dlet ((org-roam-capture-templates
             '(("d" "default" plain "%?"
                :if-new (file+head
@@ -1257,12 +1260,30 @@ for editing. Existing nodes are linked without any extra prompt."
                :immediate-finish t
                :unnarrowed t))))
       (add-hook 'org-roam-capture-new-node-hook grab)
-      (unwind-protect (org-roam-node-insert)
-        (remove-hook 'org-roam-capture-new-node-hook grab)))
-    ;; if a new node was created, drop into it to write
-    (when (and created (file-exists-p created))
-      (find-file created)
-      (goto-char (point-max)))))
+      (unwind-protect
+          (let ((result
+                 (catch 'my/ck--url
+                   (require 'org-roam)
+                   (minibuffer-with-setup-hook
+                       (lambda ()
+                         (add-hook 'post-command-hook #'my/ck--maybe-url-redirect nil t))
+                     (org-roam-node-insert))
+                   'node)))
+            (when (eq (car-safe result) 'url)
+              (let* ((u    (cdr result))
+                     (url  (if (string-match-p "\\`www\\." u)
+                               (concat "https://" u) u))
+                     (desc (if (region-active-p)
+                               (buffer-substring-no-properties (region-beginning) (region-end))
+                             (read-string "Description: " url))))
+                (if (region-active-p)
+                    (progn (delete-region (region-beginning) (region-end))
+                           (insert (org-link-make-string url desc)))
+                  (insert (org-link-make-string url desc))))))
+        (remove-hook 'org-roam-capture-new-node-hook grab))
+      (when (and created (file-exists-p created))
+        (find-file created)
+        (goto-char (point-max))))))
 
 (global-set-key (kbd "M-m x a") #'org-archive-subtree)
 #+end_src
@@ -2247,7 +2268,7 @@ Shown at startup instead of *scratch*. q closes it, M-m h reopens it.
       (my/start--key "M-m j"   "Jump to running clock")
       (my/start--key "M-m a d" "Today: timeline of clocked time")
       (my/start--key "M-m R"   "Scan now for due-task reminders")
-      (my/start--key "C-k"     "Insert roam node link (in org buffers)")
+      (my/start--key "C-k"     "Node link; paste a URL -> website link")
       (my/start--key "M-m p a" "Agenda for a subfolder")
       (my/start--key "M-m p f" "Agenda for this file only")
       (my/start--key "M-m p g" "Gantt export (Mermaid)")
