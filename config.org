@@ -2074,7 +2074,8 @@ the full context lives on in the commit and the history mirror.
   (magit-display-buffer-function
    #'magit-display-buffer-same-window-except-diff-v1)
   :config
-  (define-key magit-mode-map (kbd "C-w") #'kill-current-buffer))
+  (define-key magit-mode-map (kbd "C-w")      #'kill-current-buffer)
+  (define-key magit-mode-map (kbd "C-<tab>")  #'consult-buffer))
 #+end_src
 
 ** Per-file commit + history mirror
